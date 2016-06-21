@@ -52,8 +52,8 @@ func doSendNotificationAPNS(token string, message string, badge uint, sound stri
 	switch Config.PushEnv {
 	case "development", "production":
 		gateway = apns.ProductionGateway
-		apnsCert = ""
-		apnsKey = ""
+		apnsCert = "../certs/apns-cert.pem"
+		apnsKey = "../certs/apns-prod.pem"
 		break
 	}
 
