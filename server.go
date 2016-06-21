@@ -25,11 +25,13 @@ func runServer(mode string) (message string, err error) {
 	if err != nil {
 		return "", errors.New("server.runServer: " + err.Error())
 	}
+
 	// Set config in packages
 	accounts.SetConfig(&Config)
 	payments.SetConfig(&Config)
 	appauth.SetConfig(&Config)
 	push.SetConfig(&Config)
+
 	switch mode {
 	case "tls":
 		cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")

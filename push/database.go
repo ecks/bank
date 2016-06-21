@@ -3,7 +3,15 @@ package push
 import (
 	"database/sql"
 	"errors"
+
+	"github.com/ksred/bank/configuration"
 )
+
+var Config configuration.Configuration
+
+func SetConfig(config *configuration.Configuration) {
+	Config = *config
+}
 
 func loadDatabase() (db *sql.DB, err error) {
 	// Test connection with ping

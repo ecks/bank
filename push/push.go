@@ -7,18 +7,11 @@ import (
 	"errors"
 
 	"github.com/ksred/apns"
-	"github.com/ksred/bank/configuration"
 )
-
-var Config configuration.Configuration
 
 type PushDevice struct {
 	Token    string
 	Platform string
-}
-
-func SetConfig(config *configuration.Configuration) {
-	Config = *config
 }
 
 func SendNotification(accountNumber string, message string, badge uint, sound string) (err error) {
@@ -27,6 +20,7 @@ func SendNotification(accountNumber string, message string, badge uint, sound st
 	if err != nil {
 		return errors.New("push.SendNotification: Could not get push devices " + err.Error())
 	}
+
 	// Loop through
 	for _, pd := range pushDevices {
 		// Switch on device type
