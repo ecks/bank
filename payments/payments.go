@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/ksred/bank/appauth"
+	"github.com/ksred/bank/push"
 	"github.com/shopspring/decimal"
 )
 
@@ -130,6 +131,9 @@ func painCreditTransferInitiation(painType int64, data []string) (result string,
 		return "", errors.New("payments.painCreditTransferInitiation: " + err.Error())
 	}
 
+	go push.SendNotification(sender.AccountNumber, "💸 Payment sent!", 5, "default")
+	go push.SendNotification(receiver.AccountNumber, "💸 Payment received!", 5, "default")
+
 	return
 }
 
@@ -200,6 +204,8 @@ func customerDepositInitiation(painType int64, data []string) (result string, er
 	if err != nil {
 		return "", errors.New("payments.CustomerDepositInitiation: " + err.Error())
 	}
+
+	go push.SendNotification(receiver.AccountNumber, "💸 Deposit received!", 5, "default")
 
 	return
 }
