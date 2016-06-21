@@ -80,6 +80,20 @@ var routes = Routes{
 		"/account/{accountId}",
 		AccountGet,
 	},
+	// Add push token to account
+	Route{
+		"AccountTokenPost",
+		"POST",
+		"/accountPushToken",
+		AccountTokenPost,
+	},
+	// Delete push token from account
+	Route{
+		"AccountTokenDelete",
+		"DELETE",
+		"/accountPushToken",
+		AccountTokenDelete,
+	},
 	// Payments
 	// Credit initiation
 	Route{

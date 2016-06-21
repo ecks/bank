@@ -15,7 +15,11 @@ const (
 )
 
 func main() {
-	argClientServer := os.Args[1]
+	argClientServer := "http"
+	// http server is default mode
+	if len(os.Args) > 1 {
+		argClientServer = os.Args[1]
+	}
 
 	err := parseArguments(argClientServer)
 	if err != nil {

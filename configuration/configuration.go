@@ -22,6 +22,7 @@ type Configuration struct {
 	PasswordSalt string
 	Db           *sql.DB
 	Redis        *redis.Client
+	PushEnv      string
 }
 
 var configPath = "../config.json"

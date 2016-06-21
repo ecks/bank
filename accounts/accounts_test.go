@@ -159,3 +159,23 @@ func BenchmarkSetAccountHolderDetails(b *testing.B) {
 		_, _ = setAccountHolderDetails(tst)
 	}
 }
+
+/* @TODO
+None of the above tests run against the functionality
+Add functional tests like the one below, currently throwing nil pointer exception
+func TestAddAccountPushTokenFunctional(t *testing.T) {
+	//token~acmt~1003~token~platform
+	tst := []string{"", "", "", "test-push-token", "other"}
+	err := addAccountPushToken(tst)
+
+	if err != nil {
+		t.Errorf("AddAccountPushToken does not pass. Add token. Looking for %v, got %v", nil, err)
+	}
+
+	err = removeAccountPushToken(tst)
+	if err != nil {
+		t.Errorf("AddAccountPushToken does not pass. Remove token. Looking for %v, got %v", nil, err)
+	}
+
+}
+*/

@@ -85,7 +85,6 @@ func doCreateAccount(sqlTime int32, accountDetails *AccountDetails) (err error) 
 }
 
 func doDeleteAccount(accountDetails *AccountDetails) (err error) {
-	// Create account
 	deleteStatement := "DELETE FROM accounts WHERE `accountNumber` = ? AND `bankNumber` = ? AND `accountHolderName` = ? "
 	stmtDel, err := Config.Db.Prepare(deleteStatement)
 	if err != nil {
@@ -265,5 +264,74 @@ func getSingleAccountNumberByID(userID string) (accountID string, err error) {
 		return "", errors.New("accounts.getSingleAccountNumberByID: Account not found")
 	}
 
+	return
+}
+
+func doAddAccountPushToken(accountNumber string, pushToken string, platform string) (err error) {
+	t := time.Now()
+	sqlTime := int32(t.Unix())
+
+	// Check if push token already exists for user
+	pushTokenExists, err := fetchAccountPushToken(accountNumber, pushToken, platform)
+	if err != nil {
+		return errors.New("accounts.doAddAccountPushToken: " + err.Error())
+	}
+
+	if pushTokenExists == true {
+		// Delete current push token
+		err = doDeleteAccountPushToken(accountNumber, pushToken, platform)
+		if err != nil {
+			return errors.New("accounts.doAddAccountPushToken: Could not delete existing push token: " + err.Error())
+		}
+	}
+
+	insertStatement := "INSERT INTO accounts_push_tokens (`accountNumber`, `token`, `platform`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?)"
+	stmtIns, err := Config.Db.Prepare(insertStatement)
+	if err != nil {
+		return errors.New("accounts.doAddAccountPushToken: " + err.Error())
+	}
+	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtIns.Exec(accountNumber, pushToken, platform, sqlTime)
+
+	if err != nil {
+		return errors.New("accounts.doAddAccountPushToken: " + err.Error())
+	}
+
+	return
+}
+
+func fetchAccountPushToken(accountNumber string, pushToken string, platform string) (pushTokenExists bool, err error) {
+	rows, err := Config.Db.Query("SELECT * FROM `accounts_push_tokens` WHERE `accountNumber` = ? AND `token` = ? AND `platform` = ?", accountNumber, pushToken, platform)
+	if err != nil {
+		return false, errors.New("accounts.fetchAccountPushToken: " + err.Error())
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := rows.Scan(&pushToken); err != nil {
+			pushTokenExists = true
+			break
+		}
+	}
+
+	return
+}
+
+func doDeleteAccountPushToken(accountNumber string, pushToken string, platform string) (err error) {
+	deleteStatement := "DELETE FROM `accounts_push_tokens` WHERE `accountNumber` = ? AND `token` = ? AND `platform` = ?"
+	stmtDel, err := Config.Db.Prepare(deleteStatement)
+	if err != nil {
+		return errors.New("accounts.doDeleteAccountPushToken: " + err.Error())
+	}
+
+	defer stmtDel.Close()
+
+	_, err = stmtDel.Exec(accountNumber, pushToken, platform)
+	if err != nil {
+		return errors.New("accounts.doDeleteAccountPushToken: " + err.Error())
+	}
+	// Can use db.RowsAffected() to check
 	return
 }

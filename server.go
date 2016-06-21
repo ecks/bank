@@ -13,6 +13,7 @@ import (
 	"github.com/ksred/bank/appauth"
 	"github.com/ksred/bank/configuration"
 	"github.com/ksred/bank/payments"
+	"github.com/ksred/bank/push"
 )
 
 var Config configuration.Configuration
@@ -28,6 +29,7 @@ func runServer(mode string) (message string, err error) {
 	accounts.SetConfig(&Config)
 	payments.SetConfig(&Config)
 	appauth.SetConfig(&Config)
+	push.SetConfig(&Config)
 	switch mode {
 	case "tls":
 		cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
