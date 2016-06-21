@@ -48,6 +48,8 @@ Accounts (acmt) transactions are as follows:
 1000 - ListAllAccounts (@FIXME Used for now by anyone, close down later)
 1001 - ListSingleAccount
 1002 - CheckAccountByID
+1003 - AddAccountPushToken
+1004 - RemoveAccountPushToken
 
 */
 
@@ -146,6 +148,24 @@ func ProcessAccount(data []string) (result string, err error) {
 			return "", errors.New("accounts.ProcessAccount: " + err.Error())
 		}
 		break
+	case 1003:
+		if len(data) < 5 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		err = addAccountPushToken(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	case 1004:
+		if len(data) < 5 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		err = removeAccountPushToken(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
 	default:
 		err = errors.New("accounts.ProcessAccount: ACMT transaction code invalid")
 		break
@@ -323,4 +343,61 @@ func fetchSingleAccountByID(data []string) (result string, err error) {
 
 	result = userAccountNumber
 	return
+}
+
+func addAccountPushToken(data []string) (err error) {
+	//Format: token~acmt~1003~token~platform
+	tokenUser, err := appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return errors.New("accounts.addAccountPushToken: " + err.Error())
+	}
+
+	// Check platform is correctly set
+	// @FIXME This feels very heavy handed for "check if value in array"
+	platform := data[4]
+	platformPass := false
+	allowedPlatforms := []string{"ios", "windows", "android", "blackberry", "other"}
+	for _, v := range allowedPlatforms {
+		if strings.Compare(v, platform) == 0 {
+			platformPass = true
+		}
+	}
+
+	if !platformPass {
+		return errors.New("accounts.addAccountPushToken: Platform invalid")
+	}
+
+	err = doAddAccountPushToken(tokenUser, data[3], platform)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func removeAccountPushToken(data []string) (err error) {
+	//Format: token~acmt~1003~token~platform
+	tokenUser, err := appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return errors.New("accounts.addAccountPushToken: " + err.Error())
+	}
+
+	// Check platform is correctly set
+	// @FIXME This feels very heavy handed for "check if value in array"
+	platform := data[4]
+	platformPass := false
+	allowedPlatforms := []string{"ios", "windows", "android", "blackberry", "other"}
+	for _, v := range allowedPlatforms {
+		if strings.Compare(v, platform) == 0 {
+			platformPass = true
+		}
+	}
+
+	if !platformPass {
+		return errors.New("accounts.addAccountPushToken: Platform invalid")
+	}
+	err = doDeleteAccountPushToken(tokenUser, data[3], platform)
+	if err != nil {
+		return err
+	}
+	return nil
 }

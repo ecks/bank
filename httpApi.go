@@ -10,6 +10,7 @@ import (
 	"github.com/ksred/bank/appauth"
 	"github.com/ksred/bank/configuration"
 	"github.com/ksred/bank/payments"
+	"github.com/ksred/bank/push"
 )
 
 func RunHttpServer() (err error) {
@@ -20,10 +21,12 @@ func RunHttpServer() (err error) {
 	if err != nil {
 		return errors.New("server.runServer: " + err.Error())
 	}
+
 	// Set config in packages
 	accounts.SetConfig(&Config)
 	payments.SetConfig(&Config)
 	appauth.SetConfig(&Config)
+	push.SetConfig(&Config)
 
 	router := NewRouter()
 

@@ -151,7 +151,6 @@ func AccountGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func AccountGetAll(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Account GetAll")
 	token, err := getTokenFromHeader(w, r)
 	if err != nil {
 		Response("", err, w, r)
@@ -159,6 +158,36 @@ func AccountGetAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := accounts.ProcessAccount([]string{token, "acmt", "1000"})
+	Response(response, err, w, r)
+	return
+}
+
+func AccountTokenPost(w http.ResponseWriter, r *http.Request) {
+	token, err := getTokenFromHeader(w, r)
+	if err != nil {
+		Response("", err, w, r)
+		return
+	}
+
+	pushToken := r.FormValue("PushToken")
+	platform := r.FormValue("Platform")
+
+	response, err := accounts.ProcessAccount([]string{token, "acmt", "1003", pushToken, platform})
+	Response(response, err, w, r)
+	return
+}
+
+func AccountTokenDelete(w http.ResponseWriter, r *http.Request) {
+	token, err := getTokenFromHeader(w, r)
+	if err != nil {
+		Response("", err, w, r)
+		return
+	}
+
+	pushToken := r.FormValue("PushToken")
+	platform := r.FormValue("Platform")
+
+	response, err := accounts.ProcessAccount([]string{token, "acmt", "1004", pushToken, platform})
 	Response(response, err, w, r)
 	return
 }

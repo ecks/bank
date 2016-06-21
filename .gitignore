@@ -1,6 +1,6 @@
 rethinkdb_data/log_file
 rethinkdb_data/metadata
-configuration/config.json
+config.json
 *.orig
 bank
 *.key

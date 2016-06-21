@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -205,6 +206,9 @@ func TestGetAccount(t *testing.T) {
 	if err != nil {
 		t.Errorf("GetAccount CreateAccountMeta does not pass. Looking for %v, got %v", nil, err)
 	}
+
+	fmt.Printf("Account: %v\n", accountDetail)
+	fmt.Printf("AccountMeta: %v\n", accountHolderDetail)
 
 	// Get account
 	getAccountDetails, err := getAccountDetails(accountDetail.AccountNumber)
@@ -657,4 +661,42 @@ func BenchmarkGetSingleAccountNumberByID(b *testing.B) {
 		_ = doDeleteAccount(&accountDetail)
 		_ = doDeleteAccountMeta(&accountHolderDetail, &accountDetail)
 	}
+}
+
+func TestAddAccountPushToken(t *testing.T) {
+	// Do add push token
+	err := doAddAccountPushToken("test-account-number-123456789012", "test-push-token", "other")
+	if err != nil {
+		t.Errorf("AddAccountPushToken does not pass. Adding token. Looking for %v, got %v", nil, err)
+	}
+
+	// Check if it is there
+	pushTokenExists, err := fetchAccountPushToken("test-account-number-123456789012", "test-push-token", "other")
+	if err != nil {
+		t.Errorf("AddAccountPushToken does not pass. Checking token. Looking for %v, got %v", nil, err)
+	}
+	if pushTokenExists == false {
+		t.Errorf("AddAccountPushToken does not pass. Verifying token. Looking for %v, got %v", nil, err)
+	}
+
+	err = doDeleteAccountPushToken("test-account-number-123456789012", "test-push-token", "other")
+	if err != nil {
+		t.Errorf("doDeleteAccountPushToken does not pass. Deleting token. Looking for %v, got %v", nil, err)
+	}
+}
+
+func BenchmarkAddAccountPushToken(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		_ = doAddAccountPushToken("test-account-number-123456789012", "test-push-token", "other")
+		_, _ = fetchAccountPushToken("test-account-number-123456789012", "test-push-token", "other")
+		_ = doDeleteAccountPushToken("test-account-number-123456789012", "test-push-token", "other")
+	}
+}
+
+func BenchmarkFetchPushToken(b *testing.B) {
+	_ = doAddAccountPushToken("test-account-number-123456789012", "test-push-token", "other")
+	for n := 0; n < b.N; n++ {
+		_, _ = fetchAccountPushToken("test-account-number-123456789012", "test-push-token", "other")
+	}
+	_ = doDeleteAccountPushToken("test-account-number-123456789012", "test-push-token", "other")
 }

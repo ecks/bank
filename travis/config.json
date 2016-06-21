@@ -1,0 +1,11 @@
+{
+    "MySQLUser"         :   "root",
+    "MySQLPass"         :   "",
+    "MySQLHost"         :   "127.0.0.1",
+    "MySQLPort"         :   "3306",
+    "MySQLDB"           :   "bank",
+    "TimeZone"          :   "Africa/Johannesburg",
+    "RedisHost"         :   "127.0.0.1",
+    "RedisPort"         :   "6379",
+    "PasswordSalt"      :   "80F3lulVxs0kQ6MO81d5Ni9d6N7F0q"
+}

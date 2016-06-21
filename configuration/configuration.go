@@ -22,9 +22,10 @@ type Configuration struct {
 	PasswordSalt string
 	Db           *sql.DB
 	Redis        *redis.Client
+	PushEnv      string
 }
 
-var configPath = "./config.json"
+var configPath = "../config.json"
 
 func LoadConfig() (configuration Configuration, err error) {
 	// Get config

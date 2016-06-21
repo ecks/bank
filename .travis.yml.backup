@@ -1,0 +1,23 @@
+language: go
+
+go:
+  - 1.6
+
+install:
+  - go get github.com/go-sql-driver/mysql
+  - go get github.com/satori/go.uuid
+  - go get gopkg.in/redis.v3
+  - go get github.com/gorilla/mux
+  - go get github.com/shopspring/decimal
+
+services:
+  - redis
+  - mysql
+
+before_install:
+  - bash ./travis/build.sh
+
+script: 
+  - go test -v -bench=. $HOME/gopath/src/github.com/ksred/bank/accounts/* 
+  - go test -v -bench=. $HOME/gopath/src/github.com/ksred/bank/appauth/* 
+  - go test -v -bench=. $HOME/gopath/src/github.com/ksred/bank/payments/*
