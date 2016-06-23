@@ -33,7 +33,6 @@ func getTokenFromHeader(w http.ResponseWriter, r *http.Request) (token string, e
 
 // Extend token
 func AuthIndex(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Extend token")
 	token, err := getTokenFromHeader(w, r)
 	if err != nil {
 		Response("", err, w, r)
