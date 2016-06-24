@@ -1,4 +1,4 @@
-![Bank logo](https://ksred.me/bank.png)
+![Bank logo](https://bvnk.co/bvnk-dark-hor.png)
 # Banking infrastructure built using Go
 _Core banking in Golang_
 
