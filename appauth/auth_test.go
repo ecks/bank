@@ -1,11 +1,11 @@
 package appauth
 
 import (
-	"crypto/sha512"
 	"encoding/hex"
 	"testing"
 
 	"github.com/ksred/bank/configuration"
+	"github.com/pzduniak/argon2"
 )
 
 func AccountsSetConfig(t *testing.T) {
@@ -50,9 +50,9 @@ func TestCreateRemoveUserPassword(t *testing.T) {
 	user := "1234-1234-1234-1234"
 	password := "test-password"
 
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hashedPassword := hex.EncodeToString(hasher.Sum(nil))
+	// Generate hash
+	output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
+	hashedPassword := hex.EncodeToString(output)
 
 	_, err := CreateUserPassword(user, password)
 	if err != nil {
@@ -65,6 +65,18 @@ func TestCreateRemoveUserPassword(t *testing.T) {
 	}
 }
 
+func TestCreateRemoveUserPasswordShortPassword(t *testing.T) {
+	AccountsSetConfig(t)
+
+	user := "1234-1234-1234-1234"
+	password := "short"
+
+	_, err := CreateUserPassword(user, password)
+	if err == nil {
+		t.Errorf("CreateRemoveUserPasswordShortPassword Create does not pass. Looking for err, got %v", nil)
+	}
+}
+
 func BenchmarkCreateRemoveUserPassword(b *testing.B) {
 	Config, _ := configuration.LoadConfig()
 	SetConfig(&Config)
@@ -73,9 +85,9 @@ func BenchmarkCreateRemoveUserPassword(b *testing.B) {
 	password := "test-password"
 
 	for n := 0; n < b.N; n++ {
-		hasher := sha512.New()
-		hasher.Write([]byte(password))
-		hashedPassword := hex.EncodeToString(hasher.Sum(nil))
+		// Generate hash
+		output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
+		hashedPassword := hex.EncodeToString(output)
 
 		_, _ = CreateUserPassword(user, password)
 		_, _ = RemoveUserPassword(user, hashedPassword)
@@ -88,9 +100,9 @@ func TestCreateRemoveCheckToken(t *testing.T) {
 	user := "1234-1234-1234-1234"
 	password := "test-password"
 
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hashedPassword := hex.EncodeToString(hasher.Sum(nil))
+	// Generate hash
+	output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
+	hashedPassword := hex.EncodeToString(output)
 
 	_, err := CreateUserPassword(user, password)
 	if err != nil {
@@ -127,9 +139,9 @@ func BenchmarkCreateRemoveCheckToken(b *testing.B) {
 	password := "test-password"
 
 	for n := 0; n < b.N; n++ {
-		hasher := sha512.New()
-		hasher.Write([]byte(password))
-		hashedPassword := hex.EncodeToString(hasher.Sum(nil))
+		// Generate hash
+		output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
+		hashedPassword := hex.EncodeToString(output)
 
 		_, _ = CreateUserPassword(user, password)
 
@@ -146,9 +158,9 @@ func TestGetUserFromToken(t *testing.T) {
 	user := "1234-1234-1234-1234"
 	password := "test-password"
 
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hashedPassword := hex.EncodeToString(hasher.Sum(nil))
+	// Generate hash
+	output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
+	hashedPassword := hex.EncodeToString(output)
 
 	_, err := CreateUserPassword(user, password)
 	if err != nil {
@@ -189,9 +201,9 @@ func BenchmarkGetUserFromToken(b *testing.B) {
 	password := "test-password"
 
 	for n := 0; n < b.N; n++ {
-		hasher := sha512.New()
-		hasher.Write([]byte(password))
-		hashedPassword := hex.EncodeToString(hasher.Sum(nil))
+		// Generate hash
+		output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
+		hashedPassword := hex.EncodeToString(output)
 
 		_, _ = CreateUserPassword(user, password)
 		token, _ := CreateToken(user, password)

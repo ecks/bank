@@ -1,7 +1,6 @@
 package appauth
 
 import (
-	"crypto/sha512"
 	"encoding/hex"
 	"errors"
 	"time"
@@ -9,11 +8,13 @@ import (
 	"gopkg.in/redis.v3"
 
 	"github.com/ksred/bank/configuration"
+	"github.com/pzduniak/argon2"
 	"github.com/satori/go.uuid"
 )
 
 const (
-	TOKEN_TTL = time.Hour // One hour
+	TOKEN_TTL           = time.Hour // One hour
+	MIN_PASSWORD_LENGTH = 8
 )
 
 var Config configuration.Configuration
@@ -75,10 +76,6 @@ func ProcessAppAuth(data []string) (result string, err error) {
 
 func CreateUserPassword(user string, password string) (result string, err error) {
 	//TEST 0~appauth~3~181ac0ae-45cb-461d-b740-15ce33e4612f~testPassword
-	// Generate hash
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hash := hex.EncodeToString(hasher.Sum(nil))
 
 	// Check for existing account
 	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
@@ -96,6 +93,19 @@ func CreateUserPassword(user string, password string) (result string, err error)
 	if count > 0 {
 		return "", errors.New("appauth.CreateUserPassword: Account already exists")
 	}
+
+	// Check password length
+	if len(password) < MIN_PASSWORD_LENGTH {
+		return "", errors.New("appauth.CreateUserPassword: Password must be at least " + string(MIN_PASSWORD_LENGTH) + " characters")
+	}
+
+	// Generate hash
+	output, err := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
+	if err != nil {
+		return "", errors.New("appauth.CreateUserPassword: Could not generate secure hash. " + err.Error())
+	}
+
+	hash := hex.EncodeToString(output)
 
 	// Prepare statement for inserting data
 	insertStatement := "INSERT INTO accounts_auth (`accountNumber`, `password`, `timestamp`) "
@@ -173,9 +183,12 @@ func CreateToken(user string, password string) (token string, err error) {
 	}
 
 	// Generate hash
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hash := hex.EncodeToString(hasher.Sum(nil))
+	output, err := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
+	if err != nil {
+		return "", errors.New("appauth.CreateUserPassword: Could not generate secure hash. " + err.Error())
+	}
+
+	hash := hex.EncodeToString(output)
 
 	if hash != hashedPassword {
 		return "", errors.New("appauth.CreateToken: Authentication credentials invalid")
