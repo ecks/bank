@@ -3,7 +3,6 @@ package appauth
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -77,7 +76,7 @@ func ProcessAppAuth(data []string) (result string, err error) {
 	return "", errors.New("appauth.ProcessAppAuth: No valid option chosen")
 }
 
-func CreateUserPassword(user string, password string) (result string, err error) {
+func CreateUserPassword(user string, clearTextPassword string) (result string, err error) {
 	//TEST 0~appauth~3~181ac0ae-45cb-461d-b740-15ce33e4612f~testPassword
 
 	// Check for existing account
@@ -98,7 +97,7 @@ func CreateUserPassword(user string, password string) (result string, err error)
 	}
 
 	// Check password length
-	if len(password) < MIN_PASSWORD_LENGTH {
+	if len(clearTextPassword) < MIN_PASSWORD_LENGTH {
 		return "", errors.New("appauth.CreateUserPassword: Password must be at least " + string(MIN_PASSWORD_LENGTH) + " characters")
 	}
 
@@ -111,12 +110,12 @@ func CreateUserPassword(user string, password string) (result string, err error)
 	userSalt := hex.EncodeToString(saltOutput)
 
 	// Generate hash
-	userPasswordSalt := userSalt + password
+	userPasswordSalt := userSalt + clearTextPassword
 	hashOutput, err := argon2.Key([]byte(userPasswordSalt), []byte(Config.PasswordSalt), 3, 4, 4096, 64, argon2.Argon2i)
 	if err != nil {
 		return "", errors.New("appauth.CreateUserPassword: Could not generate secure hash. " + err.Error())
 	}
-	hash := hex.EncodeToString(hashOutput)
+	userHashedPassword := hex.EncodeToString(hashOutput)
 
 	// Prepare statement for inserting data
 	insertStatement := "INSERT INTO accounts_auth (`accountNumber`, `password`, `salt`, `timestamp`) "
@@ -131,7 +130,7 @@ func CreateUserPassword(user string, password string) (result string, err error)
 	t := time.Now()
 	sqlTime := int32(t.Unix())
 
-	_, err = stmtIns.Exec(user, hash, userSalt, sqlTime)
+	_, err = stmtIns.Exec(user, userHashedPassword, userSalt, sqlTime)
 
 	if err != nil {
 		return "", errors.New("appauth.CreateUserPassword: Could not save account. " + err.Error())
@@ -172,10 +171,6 @@ func RemoveUserPassword(user string, clearTextPassword string) (result string, e
 	}
 	hash := hex.EncodeToString(hashOutput)
 
-	fmt.Printf("clearTextPassword: %v\n", clearTextPassword)
-	fmt.Printf("userSalt: %v\n", userSalt)
-	fmt.Printf("userHashedPassword: %v\n", userHashedPassword)
-	fmt.Printf("generatedHash: %v\n", hash)
 	if hash != userHashedPassword {
 		return "", errors.New("appauth.CreateToken: Authentication credentials invalid")
 	}

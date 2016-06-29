@@ -1,3 +1,3 @@
 ALTER TABLE accounts_auth 
-ADD `salt` char(64) NOT NULL
+ADD `salt` char(128) NOT NULL
 AFTER `password`;
