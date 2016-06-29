@@ -1,19 +1,22 @@
 package appauth
 
 import (
-	"crypto/sha512"
 	"encoding/hex"
 	"errors"
+	"math/rand"
 	"time"
 
 	"gopkg.in/redis.v3"
 
 	"github.com/ksred/bank/configuration"
+	"github.com/pzduniak/argon2"
 	"github.com/satori/go.uuid"
 )
 
 const (
-	TOKEN_TTL = time.Hour // One hour
+	TOKEN_TTL           = time.Hour // One hour
+	MIN_PASSWORD_LENGTH = 8
+	LETTER_BYTES        = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
 var Config configuration.Configuration
@@ -73,12 +76,8 @@ func ProcessAppAuth(data []string) (result string, err error) {
 	return "", errors.New("appauth.ProcessAppAuth: No valid option chosen")
 }
 
-func CreateUserPassword(user string, password string) (result string, err error) {
+func CreateUserPassword(user string, clearTextPassword string) (result string, err error) {
 	//TEST 0~appauth~3~181ac0ae-45cb-461d-b740-15ce33e4612f~testPassword
-	// Generate hash
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hash := hex.EncodeToString(hasher.Sum(nil))
 
 	// Check for existing account
 	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
@@ -97,9 +96,30 @@ func CreateUserPassword(user string, password string) (result string, err error)
 		return "", errors.New("appauth.CreateUserPassword: Account already exists")
 	}
 
+	// Check password length
+	if len(clearTextPassword) < MIN_PASSWORD_LENGTH {
+		return "", errors.New("appauth.CreateUserPassword: Password must be at least " + string(MIN_PASSWORD_LENGTH) + " characters")
+	}
+
+	// Generate salt
+	randomStrIn := RandStringBytes(32)
+	saltOutput, err := argon2.Key([]byte(randomStrIn), []byte(Config.PasswordSalt), 3, 4, 4096, 64, argon2.Argon2i)
+	if err != nil {
+		return "", errors.New("appauth.CreateUserPassword: Could not generate secure hash. " + err.Error())
+	}
+	userSalt := hex.EncodeToString(saltOutput)
+
+	// Generate hash
+	userPasswordSalt := userSalt + clearTextPassword
+	hashOutput, err := argon2.Key([]byte(userPasswordSalt), []byte(Config.PasswordSalt), 3, 4, 4096, 64, argon2.Argon2i)
+	if err != nil {
+		return "", errors.New("appauth.CreateUserPassword: Could not generate secure hash. " + err.Error())
+	}
+	userHashedPassword := hex.EncodeToString(hashOutput)
+
 	// Prepare statement for inserting data
-	insertStatement := "INSERT INTO accounts_auth (`accountNumber`, `password`, `timestamp`) "
-	insertStatement += "VALUES(?, ?, ?)"
+	insertStatement := "INSERT INTO accounts_auth (`accountNumber`, `password`, `salt`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?)"
 	stmtIns, err := Config.Db.Prepare(insertStatement)
 	if err != nil {
 		return "", errors.New("appauth.CreateUserPassword: Error with insert. " + err.Error())
@@ -110,7 +130,7 @@ func CreateUserPassword(user string, password string) (result string, err error)
 	t := time.Now()
 	sqlTime := int32(t.Unix())
 
-	_, err = stmtIns.Exec(user, hash, sqlTime)
+	_, err = stmtIns.Exec(user, userHashedPassword, userSalt, sqlTime)
 
 	if err != nil {
 		return "", errors.New("appauth.CreateUserPassword: Could not save account. " + err.Error())
@@ -120,7 +140,7 @@ func CreateUserPassword(user string, password string) (result string, err error)
 	return
 }
 
-func RemoveUserPassword(user string, hashedPassword string) (result string, err error) {
+func RemoveUserPassword(user string, clearTextPassword string) (result string, err error) {
 	// Check for existing account
 	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
 	if err != nil {
@@ -138,6 +158,23 @@ func RemoveUserPassword(user string, hashedPassword string) (result string, err 
 		return "", errors.New("appauth.RemoveUserPassword: Account auth does not exists")
 	}
 
+	userHashedPassword, userSalt, err := getUserPasswordSaltFromUID(user)
+	if err != nil {
+		return "", errors.New("appauth.CreateUserPassword: Could not retrieve user details. " + err.Error())
+	}
+
+	// Generate hash
+	userPasswordSalt := userSalt + clearTextPassword
+	hashOutput, err := argon2.Key([]byte(userPasswordSalt), []byte(Config.PasswordSalt), 3, 4, 4096, 64, argon2.Argon2i)
+	if err != nil {
+		return "", errors.New("appauth.CreateUserPassword: Could not generate secure hash. " + err.Error())
+	}
+	hash := hex.EncodeToString(hashOutput)
+
+	if hash != userHashedPassword {
+		return "", errors.New("appauth.CreateToken: Authentication credentials invalid")
+	}
+
 	// Prepare statement for inserting data
 	delStatement := "DELETE FROM accounts_auth WHERE `accountNumber` = ? AND `password` = ? "
 	stmtDel, err := Config.Db.Prepare(delStatement)
@@ -146,7 +183,16 @@ func RemoveUserPassword(user string, hashedPassword string) (result string, err 
 	}
 	defer stmtDel.Close() // Close the statement when we leave main() / the program terminates
 
-	_, err = stmtDel.Exec(user, hashedPassword)
+	res, err := stmtDel.Exec(user, userHashedPassword)
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return "", errors.New("appauth.RemoveUserPassword: Could not get rows affected. " + err.Error())
+	}
+
+	if affected == 0 {
+		return "", errors.New("appauth.RemoveUserPassword: Could not delete account. No account deleted.")
+	}
 
 	if err != nil {
 		return "", errors.New("appauth.RemoveUserPassword: Could not delete account. " + err.Error())
@@ -157,7 +203,7 @@ func RemoveUserPassword(user string, hashedPassword string) (result string, err 
 }
 
 func CreateToken(user string, password string) (token string, err error) {
-	rows, err := Config.Db.Query("SELECT `password` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
+	rows, err := Config.Db.Query("SELECT `password`, `salt` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
 	if err != nil {
 		return "", errors.New("appauth.CreateToken: Error with select query. " + err.Error())
 	}
@@ -165,17 +211,22 @@ func CreateToken(user string, password string) (token string, err error) {
 
 	count := 0
 	hashedPassword := ""
+	userSalt := ""
 	for rows.Next() {
-		if err := rows.Scan(&hashedPassword); err != nil {
+		if err := rows.Scan(&hashedPassword, &userSalt); err != nil {
 			return "", errors.New("appauth.CreateToken: Could not retreive account details")
 		}
 		count++
 	}
 
 	// Generate hash
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hash := hex.EncodeToString(hasher.Sum(nil))
+	userPasswordSalt := userSalt + password
+	output, err := argon2.Key([]byte(userPasswordSalt), []byte(Config.PasswordSalt), 3, 4, 4096, 64, argon2.Argon2i)
+	if err != nil {
+		return "", errors.New("appauth.CreateUserPassword: Could not generate secure hash. " + err.Error())
+	}
+
+	hash := hex.EncodeToString(output)
 
 	if hash != hashedPassword {
 		return "", errors.New("appauth.CreateToken: Authentication credentials invalid")
@@ -240,6 +291,32 @@ func GetUserFromToken(token string) (user string, err error) {
 		if err != nil {
 			return "", errors.New("appauth.GetUserFromToken: Could not extend token. " + err.Error())
 		}
+	}
+
+	return
+}
+
+func RandStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = LETTER_BYTES[rand.Intn(len(LETTER_BYTES))]
+	}
+	return string(b)
+}
+
+func getUserPasswordSaltFromUID(user string) (hashedPassword string, userSalt string, err error) {
+	rows, err := Config.Db.Query("SELECT `password`, `salt` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
+	if err != nil {
+		return "", "", errors.New("appauth.CreateToken: Error with select query. " + err.Error())
+	}
+	defer rows.Close()
+
+	count := 0
+	for rows.Next() {
+		if err := rows.Scan(&hashedPassword, &userSalt); err != nil {
+			return "", "", errors.New("appauth.CreateToken: Could not retreive account details")
+		}
+		count++
 	}
 
 	return

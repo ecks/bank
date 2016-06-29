@@ -1,8 +1,6 @@
 package appauth
 
 import (
-	"crypto/sha512"
-	"encoding/hex"
 	"testing"
 
 	"github.com/ksred/bank/configuration"
@@ -50,18 +48,26 @@ func TestCreateRemoveUserPassword(t *testing.T) {
 	user := "1234-1234-1234-1234"
 	password := "test-password"
 
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hashedPassword := hex.EncodeToString(hasher.Sum(nil))
-
 	_, err := CreateUserPassword(user, password)
 	if err != nil {
 		t.Errorf("CreateRemoveUserPassword Create does not pass. Looking for %v, got %v", nil, err)
 	}
 
-	_, err = RemoveUserPassword(user, hashedPassword)
+	_, err = RemoveUserPassword(user, password)
 	if err != nil {
 		t.Errorf("CreateRemoveUserPassword Remove does not pass. Looking for %v, got %v", nil, err)
+	}
+}
+
+func TestCreateRemoveUserPasswordShortPassword(t *testing.T) {
+	AccountsSetConfig(t)
+
+	user := "1234-1234-1234-1234"
+	password := "short"
+
+	_, err := CreateUserPassword(user, password)
+	if err == nil {
+		t.Errorf("CreateRemoveUserPasswordShortPassword Create does not pass. Looking for err, got %v", nil)
 	}
 }
 
@@ -73,12 +79,8 @@ func BenchmarkCreateRemoveUserPassword(b *testing.B) {
 	password := "test-password"
 
 	for n := 0; n < b.N; n++ {
-		hasher := sha512.New()
-		hasher.Write([]byte(password))
-		hashedPassword := hex.EncodeToString(hasher.Sum(nil))
-
 		_, _ = CreateUserPassword(user, password)
-		_, _ = RemoveUserPassword(user, hashedPassword)
+		_, _ = RemoveUserPassword(user, password)
 	}
 }
 
@@ -87,10 +89,6 @@ func TestCreateRemoveCheckToken(t *testing.T) {
 
 	user := "1234-1234-1234-1234"
 	password := "test-password"
-
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hashedPassword := hex.EncodeToString(hasher.Sum(nil))
 
 	_, err := CreateUserPassword(user, password)
 	if err != nil {
@@ -112,7 +110,7 @@ func TestCreateRemoveCheckToken(t *testing.T) {
 		t.Errorf("CreateRemoveCheckToken Delete does not pass. Looking for %v, got %v", nil, err)
 	}
 
-	_, err = RemoveUserPassword(user, hashedPassword)
+	_, err = RemoveUserPassword(user, password)
 	if err != nil {
 		t.Errorf("CreateRemoveCheckToken Remove does not pass. Looking for %v, got %v", nil, err)
 	}
@@ -127,16 +125,12 @@ func BenchmarkCreateRemoveCheckToken(b *testing.B) {
 	password := "test-password"
 
 	for n := 0; n < b.N; n++ {
-		hasher := sha512.New()
-		hasher.Write([]byte(password))
-		hashedPassword := hex.EncodeToString(hasher.Sum(nil))
-
 		_, _ = CreateUserPassword(user, password)
 
 		token, _ := CreateToken(user, password)
 		_ = CheckToken(token)
 		_, _ = RemoveToken(token)
-		_, _ = RemoveUserPassword(user, hashedPassword)
+		_, _ = RemoveUserPassword(user, password)
 	}
 }
 
@@ -145,10 +139,6 @@ func TestGetUserFromToken(t *testing.T) {
 
 	user := "1234-1234-1234-1234"
 	password := "test-password"
-
-	hasher := sha512.New()
-	hasher.Write([]byte(password))
-	hashedPassword := hex.EncodeToString(hasher.Sum(nil))
 
 	_, err := CreateUserPassword(user, password)
 	if err != nil {
@@ -174,7 +164,7 @@ func TestGetUserFromToken(t *testing.T) {
 		t.Errorf("GetUserFromToken Delete does not pass. Looking for %v, got %v", nil, err)
 	}
 
-	_, err = RemoveUserPassword(user, hashedPassword)
+	_, err = RemoveUserPassword(user, password)
 	if err != nil {
 		t.Errorf("GetUserFromToken Remove does not pass. Looking for %v, got %v", nil, err)
 	}
@@ -189,14 +179,10 @@ func BenchmarkGetUserFromToken(b *testing.B) {
 	password := "test-password"
 
 	for n := 0; n < b.N; n++ {
-		hasher := sha512.New()
-		hasher.Write([]byte(password))
-		hashedPassword := hex.EncodeToString(hasher.Sum(nil))
-
 		_, _ = CreateUserPassword(user, password)
 		token, _ := CreateToken(user, password)
 		_, _ = GetUserFromToken(token)
 		_, _ = RemoveToken(token)
-		_, _ = RemoveUserPassword(user, hashedPassword)
+		_, _ = RemoveUserPassword(user, password)
 	}
 }
