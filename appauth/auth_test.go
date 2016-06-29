@@ -1,11 +1,9 @@
 package appauth
 
 import (
-	"encoding/hex"
 	"testing"
 
 	"github.com/ksred/bank/configuration"
-	"github.com/pzduniak/argon2"
 )
 
 func AccountsSetConfig(t *testing.T) {
@@ -50,16 +48,12 @@ func TestCreateRemoveUserPassword(t *testing.T) {
 	user := "1234-1234-1234-1234"
 	password := "test-password"
 
-	// Generate hash
-	output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
-	hashedPassword := hex.EncodeToString(output)
-
 	_, err := CreateUserPassword(user, password)
 	if err != nil {
 		t.Errorf("CreateRemoveUserPassword Create does not pass. Looking for %v, got %v", nil, err)
 	}
 
-	_, err = RemoveUserPassword(user, hashedPassword)
+	_, err = RemoveUserPassword(user, password)
 	if err != nil {
 		t.Errorf("CreateRemoveUserPassword Remove does not pass. Looking for %v, got %v", nil, err)
 	}
@@ -85,12 +79,8 @@ func BenchmarkCreateRemoveUserPassword(b *testing.B) {
 	password := "test-password"
 
 	for n := 0; n < b.N; n++ {
-		// Generate hash
-		output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
-		hashedPassword := hex.EncodeToString(output)
-
 		_, _ = CreateUserPassword(user, password)
-		_, _ = RemoveUserPassword(user, hashedPassword)
+		_, _ = RemoveUserPassword(user, password)
 	}
 }
 
@@ -99,10 +89,6 @@ func TestCreateRemoveCheckToken(t *testing.T) {
 
 	user := "1234-1234-1234-1234"
 	password := "test-password"
-
-	// Generate hash
-	output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
-	hashedPassword := hex.EncodeToString(output)
 
 	_, err := CreateUserPassword(user, password)
 	if err != nil {
@@ -124,7 +110,7 @@ func TestCreateRemoveCheckToken(t *testing.T) {
 		t.Errorf("CreateRemoveCheckToken Delete does not pass. Looking for %v, got %v", nil, err)
 	}
 
-	_, err = RemoveUserPassword(user, hashedPassword)
+	_, err = RemoveUserPassword(user, password)
 	if err != nil {
 		t.Errorf("CreateRemoveCheckToken Remove does not pass. Looking for %v, got %v", nil, err)
 	}
@@ -139,16 +125,12 @@ func BenchmarkCreateRemoveCheckToken(b *testing.B) {
 	password := "test-password"
 
 	for n := 0; n < b.N; n++ {
-		// Generate hash
-		output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
-		hashedPassword := hex.EncodeToString(output)
-
 		_, _ = CreateUserPassword(user, password)
 
 		token, _ := CreateToken(user, password)
 		_ = CheckToken(token)
 		_, _ = RemoveToken(token)
-		_, _ = RemoveUserPassword(user, hashedPassword)
+		_, _ = RemoveUserPassword(user, password)
 	}
 }
 
@@ -157,10 +139,6 @@ func TestGetUserFromToken(t *testing.T) {
 
 	user := "1234-1234-1234-1234"
 	password := "test-password"
-
-	// Generate hash
-	output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
-	hashedPassword := hex.EncodeToString(output)
 
 	_, err := CreateUserPassword(user, password)
 	if err != nil {
@@ -186,7 +164,7 @@ func TestGetUserFromToken(t *testing.T) {
 		t.Errorf("GetUserFromToken Delete does not pass. Looking for %v, got %v", nil, err)
 	}
 
-	_, err = RemoveUserPassword(user, hashedPassword)
+	_, err = RemoveUserPassword(user, password)
 	if err != nil {
 		t.Errorf("GetUserFromToken Remove does not pass. Looking for %v, got %v", nil, err)
 	}
@@ -201,14 +179,10 @@ func BenchmarkGetUserFromToken(b *testing.B) {
 	password := "test-password"
 
 	for n := 0; n < b.N; n++ {
-		// Generate hash
-		output, _ := argon2.Key([]byte(password), []byte(Config.PasswordSalt), 3, 4, 4096, 32, argon2.Argon2i)
-		hashedPassword := hex.EncodeToString(output)
-
 		_, _ = CreateUserPassword(user, password)
 		token, _ := CreateToken(user, password)
 		_, _ = GetUserFromToken(token)
 		_, _ = RemoveToken(token)
-		_, _ = RemoveUserPassword(user, hashedPassword)
+		_, _ = RemoveUserPassword(user, password)
 	}
 }
