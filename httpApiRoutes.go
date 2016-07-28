@@ -94,6 +94,13 @@ var routes = Routes{
 		"/accountPushToken",
 		AccountTokenDelete,
 	},
+	// Search for account
+	Route{
+		"AccountSearch",
+		"POST",
+		"/account/search",
+		AccountSearch,
+	},
 	// Payments
 	// Credit initiation
 	Route{

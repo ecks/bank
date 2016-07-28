@@ -3,7 +3,7 @@ package appauth
 import (
 	"testing"
 
-	"github.com/ksred/bank/configuration"
+	"github.com/bvnk/bank/configuration"
 )
 
 func AccountsSetConfig(t *testing.T) {

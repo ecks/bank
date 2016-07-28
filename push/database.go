@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/ksred/bank/configuration"
+	"github.com/bvnk/bank/configuration"
 )
 
 var Config configuration.Configuration
