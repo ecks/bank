@@ -25,8 +25,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ksred/bank/appauth"
-	"github.com/ksred/bank/push"
+	"github.com/bvnk/bank/appauth"
+	"github.com/bvnk/bank/push"
 	"github.com/shopspring/decimal"
 )
 

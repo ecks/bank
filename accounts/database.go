@@ -9,7 +9,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ksred/bank/configuration"
+	"github.com/bvnk/bank/configuration"
 	"github.com/satori/go.uuid"
 )
 
@@ -333,5 +333,27 @@ func doDeleteAccountPushToken(accountNumber string, pushToken string, platform s
 		return errors.New("accounts.doDeleteAccountPushToken: " + err.Error())
 	}
 	// Can use db.RowsAffected() to check
+	return
+}
+
+func getAccountFromSearchData(searchString string) (allAccountDetails []AccountHolderDetails, err error) {
+	rows, err := Config.Db.Query("SELECT `accountNumber`, `bankNumber`, `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderEmailAddress` FROM `accounts_meta` WHERE `accountHolderIdentificationNumber` = ? OR `accountHolderGivenName` = ? OR `accountHolderFamilyName` = ? OR `accountHolderIdentificationNumber` = ? OR `accountHolderEmailAddress` = ? LIMIT 10", searchString, searchString, searchString, searchString, searchString)
+	if err != nil {
+		return []AccountHolderDetails{}, errors.New("accounts.getAccountMeta: " + err.Error())
+	}
+	defer rows.Close()
+
+	allAccountDetails = []AccountHolderDetails{}
+	count := 0
+	for rows.Next() {
+		accountDetails := AccountHolderDetails{}
+		if err := rows.Scan(&accountDetails.AccountNumber, &accountDetails.BankNumber, &accountDetails.GivenName, &accountDetails.FamilyName, &accountDetails.EmailAddress); err != nil {
+			//@TODO Throw error
+			break
+		}
+		allAccountDetails = append(allAccountDetails, accountDetails)
+		count++
+	}
+
 	return
 }

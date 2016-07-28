@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ksred/bank/appauth"
+	"github.com/bvnk/bank/appauth"
 	"github.com/shopspring/decimal"
 )
 
@@ -50,6 +50,7 @@ Accounts (acmt) transactions are as follows:
 1002 - CheckAccountByID
 1003 - AddAccountPushToken
 1004 - RemoveAccountPushToken
+1005 - SearchForAccount
 
 */
 
@@ -163,6 +164,16 @@ func ProcessAccount(data []string) (result string, err error) {
 			return
 		}
 		err = removeAccountPushToken(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	case 1005:
+		// acmt~1005~token~search-information
+		if len(data) < 4 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = searchAccount(data)
 		if err != nil {
 			return "", errors.New("accounts.ProcessAccount: " + err.Error())
 		}
@@ -400,4 +411,31 @@ func removeAccountPushToken(data []string) (err error) {
 		return err
 	}
 	return nil
+}
+
+// searchAccountData takes a search term and searches on id, first name and last name
+// Results are limited to 10
+func searchAccount(data []string) (result string, err error) {
+	//Format: acmt~1005~token~search-string
+	_, err = appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return "", errors.New("accounts.searchAccount: " + err.Error())
+	}
+
+	searchString := data[3]
+	accounts, err := getAccountFromSearchData(searchString)
+	if err != nil {
+		return "", errors.New("accounts.searchAccount: Searching for account error. " + err.Error())
+	}
+
+	// Convert accounts into result byte
+	resultByte, err := json.Marshal(accounts)
+	if err != nil {
+		return "", errors.New("accounts.searchAccount: Could not convert to string. " + err.Error())
+	}
+
+	// Convert to string
+	result = string(resultByte)
+
+	return
 }

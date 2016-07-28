@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ksred/bank/accounts"
-	"github.com/ksred/bank/appauth"
-	"github.com/ksred/bank/configuration"
-	"github.com/ksred/bank/payments"
-	"github.com/ksred/bank/push"
+	"github.com/bvnk/bank/accounts"
+	"github.com/bvnk/bank/appauth"
+	"github.com/bvnk/bank/configuration"
+	"github.com/bvnk/bank/payments"
+	"github.com/bvnk/bank/push"
 )
 
 func RunHttpServer() (err error) {
@@ -55,7 +55,6 @@ func Response(responseSuccess string, responseError error, w http.ResponseWriter
 		return
 	}
 
-	// Create response
 	req["response"] = string(responseSuccess)
 	jsonResponse, err := json.Marshal(req)
 	if err != nil {

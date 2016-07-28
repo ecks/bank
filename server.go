@@ -9,11 +9,11 @@ import (
 	"net"
 	"strings"
 
-	"github.com/ksred/bank/accounts"
-	"github.com/ksred/bank/appauth"
-	"github.com/ksred/bank/configuration"
-	"github.com/ksred/bank/payments"
-	"github.com/ksred/bank/push"
+	"github.com/bvnk/bank/accounts"
+	"github.com/bvnk/bank/appauth"
+	"github.com/bvnk/bank/configuration"
+	"github.com/bvnk/bank/payments"
+	"github.com/bvnk/bank/push"
 )
 
 var Config configuration.Configuration

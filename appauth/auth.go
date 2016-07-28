@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/redis.v3"
 
-	"github.com/ksred/bank/configuration"
+	"github.com/bvnk/bank/configuration"
 	"github.com/pzduniak/argon2"
 	"github.com/satori/go.uuid"
 )

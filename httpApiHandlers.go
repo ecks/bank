@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/bvnk/bank/accounts"
+	"github.com/bvnk/bank/appauth"
+	"github.com/bvnk/bank/payments"
 	"github.com/gorilla/mux"
-	"github.com/ksred/bank/accounts"
-	"github.com/ksred/bank/appauth"
-	"github.com/ksred/bank/payments"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +134,6 @@ func AccountCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func AccountGet(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Account Get")
 	token, err := getTokenFromHeader(w, r)
 	if err != nil {
 		Response("", err, w, r)
@@ -187,6 +186,20 @@ func AccountTokenDelete(w http.ResponseWriter, r *http.Request) {
 	platform := r.FormValue("Platform")
 
 	response, err := accounts.ProcessAccount([]string{token, "acmt", "1004", pushToken, platform})
+	Response(response, err, w, r)
+	return
+}
+
+func AccountSearch(w http.ResponseWriter, r *http.Request) {
+	token, err := getTokenFromHeader(w, r)
+	if err != nil {
+		Response("", err, w, r)
+		return
+	}
+
+	searchTerm := r.FormValue("Search")
+
+	response, err := accounts.ProcessAccount([]string{token, "acmt", "1005", searchTerm})
 	Response(response, err, w, r)
 	return
 }
