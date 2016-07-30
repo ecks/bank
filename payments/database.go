@@ -2,6 +2,7 @@ package payments
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/bvnk/bank/configuration"
@@ -16,8 +17,10 @@ func SetConfig(config *configuration.Configuration) {
 
 func savePainTransaction(transaction PAINTrans) (err error) {
 	// Prepare statement for inserting data
-	insertStatement := "INSERT INTO transactions (`transaction`, `type`, `senderAccountNumber`, `senderBankNumber`, `receiverAccountNumber`, `receiverBankNumber`, `transactionAmount`, `feeAmount`, `timestamp`) "
-	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	// Construct geoText. These values are already cleared
+	geoText := "POINT(" + strconv.FormatFloat(transaction.Lat, 'E', -1, 64) + " " + strconv.FormatFloat(transaction.Lon, 'E', -1, 64) + ")"
+	insertStatement := "INSERT INTO transactions (`transaction`, `type`, `senderAccountNumber`, `senderBankNumber`, `receiverAccountNumber`, `receiverBankNumber`, `transactionAmount`, `geo`, `desc`, `feeAmount`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, GeomFromText(?), ?, ?, ?)"
 	stmtIns, err := Config.Db.Prepare(insertStatement)
 	if err != nil {
 		return errors.New("payments.savePainTransaction: " + err.Error())
@@ -31,7 +34,7 @@ func savePainTransaction(transaction PAINTrans) (err error) {
 	feeAmount := transaction.Amount.Mul(transaction.Fee)
 
 	_, err = stmtIns.Exec("pain", transaction.PainType, transaction.Sender.AccountNumber, transaction.Sender.BankNumber, transaction.Receiver.AccountNumber, transaction.Receiver.BankNumber,
-		transaction.Amount, feeAmount, sqlTime)
+		transaction.Amount, geoText, transaction.Desc, feeAmount, sqlTime)
 
 	if err != nil {
 		return errors.New("payments.savePainTransaction: " + err.Error())
