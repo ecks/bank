@@ -47,6 +47,7 @@ type PAINTrans struct {
 	Lat      float64
 	Lon      float64
 	Desc     string
+	Status   string
 }
 
 func ProcessPAIN(data []string) (result string, err error) {
@@ -124,9 +125,9 @@ func painCreditTransferInitiation(painType int64, data []string) (result string,
 	if err != nil {
 		return "", errors.New("payments.painCreditTransferInitiation: Could not parse coordinates into float")
 	}
-	desc := data[7]
+	desc := data[8]
 
-	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), lat, lon, desc}
+	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), lat, lon, desc, "approved"}
 
 	// Checks for transaction (avail balance, accounts open, etc)
 	balanceAvailable, err := checkBalance(transaction.Sender)
@@ -208,11 +209,11 @@ func customerDepositInitiation(painType int64, data []string) (result string, er
 		return "", errors.New("payments.customerDepositInitiation: Sender not valid")
 	}
 
-	lat, err := strconv.ParseFloat(data[6], 64)
+	lat, err := strconv.ParseFloat(data[5], 64)
 	if err != nil {
 		return "", errors.New("payments.customerDepositInitiation: Could not parse coordinates into float")
 	}
-	lon, err := strconv.ParseFloat(data[7], 64)
+	lon, err := strconv.ParseFloat(data[6], 64)
 	if err != nil {
 		return "", errors.New("payments.customerDepositInitiation: Could not parse coordinates into float")
 	}
@@ -221,7 +222,7 @@ func customerDepositInitiation(painType int64, data []string) (result string, er
 	// Issue deposit
 	// @TODO This flow show be fixed. Maybe have banks approve deposits before initiation, or
 	// immediate approval below a certain amount subject to rate limiting
-	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), lat, lon, desc}
+	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), lat, lon, desc, "approved"}
 	// Save transaction
 	result, err = processPAINTransaction(transaction)
 	if err != nil {

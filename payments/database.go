@@ -19,8 +19,9 @@ func savePainTransaction(transaction PAINTrans) (err error) {
 	// Prepare statement for inserting data
 	// Construct geoText. These values are already cleared
 	geoText := "POINT(" + strconv.FormatFloat(transaction.Lat, 'E', -1, 64) + " " + strconv.FormatFloat(transaction.Lon, 'E', -1, 64) + ")"
-	insertStatement := "INSERT INTO transactions (`transaction`, `type`, `senderAccountNumber`, `senderBankNumber`, `receiverAccountNumber`, `receiverBankNumber`, `transactionAmount`, `geo`, `desc`, `feeAmount`, `timestamp`) "
-	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, GeomFromText(?), ?, ?, ?)"
+	insertStatement := "INSERT INTO transactions (`transaction`, `type`, `senderAccountNumber`, `senderBankNumber`, `receiverAccountNumber`, `receiverBankNumber`, `transactionAmount`, `feeAmount`, `desc`, `timestamp`, `status`, `geo`) "
+	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GeomFromText(?))"
+
 	stmtIns, err := Config.Db.Prepare(insertStatement)
 	if err != nil {
 		return errors.New("payments.savePainTransaction: " + err.Error())
@@ -34,7 +35,7 @@ func savePainTransaction(transaction PAINTrans) (err error) {
 	feeAmount := transaction.Amount.Mul(transaction.Fee)
 
 	_, err = stmtIns.Exec("pain", transaction.PainType, transaction.Sender.AccountNumber, transaction.Sender.BankNumber, transaction.Receiver.AccountNumber, transaction.Receiver.BankNumber,
-		transaction.Amount, geoText, transaction.Desc, feeAmount, sqlTime)
+		transaction.Amount, feeAmount, transaction.Desc, sqlTime, transaction.Status, geoText)
 
 	if err != nil {
 		return errors.New("payments.savePainTransaction: " + err.Error())

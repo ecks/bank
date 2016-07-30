@@ -22,7 +22,7 @@ func TestSavePainTransaction(t *testing.T) {
 
 	sender := AccountHolder{"accountNumSender", "bankNumSender"}
 	receiver := AccountHolder{"accountNumReceiver", "bankNumReceiver"}
-	trans := PAINTrans{101, sender, receiver, decimal.NewFromFloat(0.), decimal.NewFromFloat(0.), 10., 10., "Test desc"}
+	trans := PAINTrans{101, sender, receiver, decimal.NewFromFloat(0.), decimal.NewFromFloat(0.), 10., 10., "Test desc", "approved"}
 
 	err := savePainTransaction(trans)
 	if err != nil {
@@ -42,7 +42,7 @@ func BenchmarkSavePainTransaction(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		sender := AccountHolder{"accountNumSender", "bankNumSender"}
 		receiver := AccountHolder{"accountNumReceiver", "bankNumReceiver"}
-		trans := PAINTrans{101, sender, receiver, decimal.NewFromFloat(0.), decimal.NewFromFloat(0.), 10., 10., "Test desc"}
+		trans := PAINTrans{101, sender, receiver, decimal.NewFromFloat(0.), decimal.NewFromFloat(0.), 10., 10., "Test desc", "approved"}
 
 		_ = savePainTransaction(trans)
 		_ = removePainTransaction(trans)
