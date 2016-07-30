@@ -36,9 +36,9 @@ func RunHttpServer() (err error) {
 	return
 }
 
-func Response(responseSuccess string, responseError error, w http.ResponseWriter, r *http.Request) {
+func Response(responseSuccess interface{}, responseError error, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	req := make(map[string]string)
+	req := make(map[string]interface{})
 
 	// Check for error
 	if responseError != nil {
@@ -55,7 +55,7 @@ func Response(responseSuccess string, responseError error, w http.ResponseWriter
 		return
 	}
 
-	req["response"] = string(responseSuccess)
+	req["response"] = responseSuccess
 	jsonResponse, err := json.Marshal(req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

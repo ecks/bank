@@ -105,7 +105,7 @@ const (
 	OPENING_OVERDRAFT = 0.
 )
 
-func ProcessAccount(data []string) (result string, err error) {
+func ProcessAccount(data []string) (result interface{}, err error) {
 	if len(data) < 3 {
 		return "", errors.New("accounts.ProcessAccount: Not enough fields, minimum 3")
 	}
@@ -185,7 +185,7 @@ func ProcessAccount(data []string) (result string, err error) {
 	return
 }
 
-func openAccount(data []string) (result string, err error) {
+func openAccount(data []string) (result interface{}, err error) {
 	// Validate string against required info/length
 	if len(data) < 14 {
 		err = errors.New("accounts.openAccount: Not all fields present")
@@ -302,20 +302,13 @@ func setAccountHolderDetails(data []string) (accountHolderDetails AccountHolderD
 }
 
 // @TODO Remove this after testing, security risk
-func fetchAccounts(data []string) (result string, err error) {
+func fetchAccounts(data []string) (accounts interface{}, err error) {
 	// Fetch all accounts. This fetches non-sensitive information (no balances)
-	accounts, err := getAllAccountDetails()
+	accounts, err = getAllAccountDetails()
 	if err != nil {
 		return "", errors.New("accounts.fetchAccounts: " + err.Error())
 	}
 
-	// Parse into nice result string
-	jsonAccounts, err := json.Marshal(accounts)
-	if err != nil {
-		return "", errors.New("accounts.fetchAccounts: " + err.Error())
-	}
-
-	result = string(jsonAccounts)
 	return
 }
 
@@ -415,7 +408,7 @@ func removeAccountPushToken(data []string) (err error) {
 
 // searchAccountData takes a search term and searches on id, first name and last name
 // Results are limited to 10
-func searchAccount(data []string) (result string, err error) {
+func searchAccount(data []string) (accounts interface{}, err error) {
 	//Format: acmt~1005~token~search-string
 	_, err = appauth.GetUserFromToken(data[0])
 	if err != nil {
@@ -423,19 +416,10 @@ func searchAccount(data []string) (result string, err error) {
 	}
 
 	searchString := data[3]
-	accounts, err := getAccountFromSearchData(searchString)
+	accounts, err = getAccountFromSearchData(searchString)
 	if err != nil {
 		return "", errors.New("accounts.searchAccount: Searching for account error. " + err.Error())
 	}
-
-	// Convert accounts into result byte
-	resultByte, err := json.Marshal(accounts)
-	if err != nil {
-		return "", errors.New("accounts.searchAccount: Could not convert to string. " + err.Error())
-	}
-
-	// Convert to string
-	result = string(resultByte)
 
 	return
 }
