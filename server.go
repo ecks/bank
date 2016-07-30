@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -100,7 +101,13 @@ func handleTCPRequest(conn net.Conn) (err error) {
 	result, err := processCommand(s)
 
 	// Convert response to text
-	textResponse := "1~" + result
+	// @FIXME Use JSON for now. Convert to correct response (val1~val2~val3~...) later
+	resString, err := json.Marshal(result)
+	if err != nil {
+		return err
+	}
+
+	textResponse := "1~" + string(resString)
 	if err != nil {
 		textResponse = "0~" + err.Error()
 	}
@@ -113,7 +120,7 @@ func handleTCPRequest(conn net.Conn) (err error) {
 	return
 }
 
-func processCommand(text string) (result string, err error) {
+func processCommand(text string) (result interface{}, err error) {
 	// Commands are received split by tilde (~)
 	// command~DATA
 	cleanText := strings.Replace(text, "\n", "", -1)
