@@ -214,8 +214,11 @@ func PaymentCreditInitiation(w http.ResponseWriter, r *http.Request) {
 	senderDetails := r.FormValue("SenderDetails")
 	recipientDetails := r.FormValue("RecipientDetails")
 	amount := r.FormValue("Amount")
+	lat := r.FormValue("Lat")
+	lon := r.FormValue("Lon")
+	desc := r.FormValue("Desc")
 
-	response, err := payments.ProcessPAIN([]string{token, "pain", "1", senderDetails, recipientDetails, amount})
+	response, err := payments.ProcessPAIN([]string{token, "pain", "1", senderDetails, recipientDetails, amount, lat, lon, desc})
 	Response(response, err, w, r)
 	return
 }
@@ -229,8 +232,11 @@ func PaymentDepositInitiation(w http.ResponseWriter, r *http.Request) {
 
 	accountDetails := r.FormValue("AccountDetails")
 	amount := r.FormValue("Amount")
+	lat := r.FormValue("Lat")
+	lon := r.FormValue("Lon")
+	desc := r.FormValue("Desc")
 
-	response, err := payments.ProcessPAIN([]string{token, "pain", "1000", accountDetails, amount})
+	response, err := payments.ProcessPAIN([]string{token, "pain", "1000", accountDetails, amount, lat, lon, desc})
 	Response(response, err, w, r)
 	return
 }
