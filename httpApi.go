@@ -9,8 +9,8 @@ import (
 	"github.com/bvnk/bank/accounts"
 	"github.com/bvnk/bank/appauth"
 	"github.com/bvnk/bank/configuration"
-	"github.com/bvnk/bank/payments"
 	"github.com/bvnk/bank/push"
+	"github.com/bvnk/bank/transactions"
 )
 
 func RunHttpServer() (err error) {
@@ -24,7 +24,7 @@ func RunHttpServer() (err error) {
 
 	// Set config in packages
 	accounts.SetConfig(&Config)
-	payments.SetConfig(&Config)
+	transactions.SetConfig(&Config)
 	appauth.SetConfig(&Config)
 	push.SetConfig(&Config)
 

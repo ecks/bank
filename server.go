@@ -13,8 +13,8 @@ import (
 	"github.com/bvnk/bank/accounts"
 	"github.com/bvnk/bank/appauth"
 	"github.com/bvnk/bank/configuration"
-	"github.com/bvnk/bank/payments"
 	"github.com/bvnk/bank/push"
+	"github.com/bvnk/bank/transactions"
 )
 
 var Config configuration.Configuration
@@ -29,7 +29,7 @@ func runServer(mode string) (message string, err error) {
 
 	// Set config in packages
 	accounts.SetConfig(&Config)
-	payments.SetConfig(&Config)
+	transactions.SetConfig(&Config)
 	appauth.SetConfig(&Config)
 	push.SetConfig(&Config)
 
@@ -164,7 +164,7 @@ func processCommand(text string) (result interface{}, err error) {
 		if command[2] == "help" {
 			return "Format of PAIN transaction:\npain\npainType~senderAccountNumber@SenderBankNumber\nreceiverAccountNumber@ReceiverBankNumber\ntransactionAmount\n\nBank numbers may be left void if bank is local", nil
 		}
-		result, err = payments.ProcessPAIN(command)
+		result, err = transactions.ProcessPAIN(command)
 		if err != nil {
 			return "", errors.New("server.processCommand: " + err.Error())
 		}

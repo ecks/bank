@@ -1,8 +1,7 @@
-package payments
+package transactions
 
 import (
 	"errors"
-	"strconv"
 	"time"
 
 	"github.com/bvnk/bank/configuration"
@@ -18,7 +17,7 @@ func SetConfig(config *configuration.Configuration) {
 func savePainTransaction(transaction PAINTrans) (err error) {
 	// Prepare statement for inserting data
 	// Construct geoText. These values are already cleared
-	geoText := "POINT(" + strconv.FormatFloat(transaction.Lat, 'E', -1, 64) + " " + strconv.FormatFloat(transaction.Lon, 'E', -1, 64) + ")"
+	geoText := transaction.Geo.ToWKT()
 	insertStatement := "INSERT INTO transactions (`transaction`, `type`, `senderAccountNumber`, `senderBankNumber`, `receiverAccountNumber`, `receiverBankNumber`, `transactionAmount`, `feeAmount`, `desc`, `timestamp`, `status`, `geo`) "
 	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GeomFromText(?))"
 
@@ -30,12 +29,13 @@ func savePainTransaction(transaction PAINTrans) (err error) {
 
 	t := time.Now()
 	sqlTime := int32(t.Unix())
+	transaction.Timestamp = sqlTime
 
 	// The feePerc is a percentage, convert to amount
 	feeAmount := transaction.Amount.Mul(transaction.Fee)
 
 	_, err = stmtIns.Exec("pain", transaction.PainType, transaction.Sender.AccountNumber, transaction.Sender.BankNumber, transaction.Receiver.AccountNumber, transaction.Receiver.BankNumber,
-		transaction.Amount, feeAmount, transaction.Desc, sqlTime, transaction.Status, geoText)
+		transaction.Amount, feeAmount, transaction.Desc, transaction.Timestamp, transaction.Status, geoText)
 
 	if err != nil {
 		return errors.New("payments.savePainTransaction: " + err.Error())
@@ -205,5 +205,25 @@ func processDepositInitiation(transaction PAINTrans, sqlTime int32, feeAmount de
 	} else {
 		// Drop onto ledger
 	}
+	return
+}
+
+func getTransactionList(accountNumber string, offset int, perPage int) (allTransactions []PAINTrans, err error) {
+	rows, err := Config.Db.Query("SELECT `type`, `senderAccountNumber`, `senderBankNumber`, `receiverAccountNumber`, `receiverBankNumber`, `transactionAmount`, `feeAmount`, `desc`, `timestamp`, `status`, `geo` FROM `transactions` WHERE `senderAccountNumber` = ? OR `receiverAccountNumber` = ? LIMIT ?, ?", accountNumber, accountNumber, offset, perPage)
+	if err != nil {
+		return []PAINTrans{}, errors.New("transactions.ListTransactions: " + err.Error())
+	}
+	defer rows.Close()
+
+	allTransactions = []PAINTrans{}
+	for rows.Next() {
+		transaction := PAINTrans{}
+		if err := rows.Scan(&transaction.PainType, &transaction.Sender.AccountNumber, &transaction.Sender.BankNumber, &transaction.Receiver.AccountNumber, &transaction.Receiver.BankNumber, &transaction.Amount, &transaction.Fee, &transaction.Desc, &transaction.Timestamp, &transaction.Status, &transaction.Geo); err != nil {
+			//@TODO Throw error
+			return []PAINTrans{}, errors.New("transactions.ListTransactions: " + err.Error())
+		}
+		allTransactions = append(allTransactions, transaction)
+	}
+
 	return
 }

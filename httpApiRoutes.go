@@ -101,20 +101,27 @@ var routes = Routes{
 		"/account/search",
 		AccountSearch,
 	},
-	// Payments
+	// Transactions
 	// Credit initiation
 	Route{
-		"PaymentCreditInitiation",
+		"TransactionCreditInitiation",
 		"POST",
-		"/payment/credit",
-		PaymentCreditInitiation,
+		"/transaction/credit",
+		TransactionCreditInitiation,
 	},
 	// Deposit initiation
 	Route{
-		"PaymentDepositInitiation",
+		"TransactionDepositInitiation",
 		"POST",
-		"/payment/deposit",
-		PaymentDepositInitiation,
+		"/transaction/deposit",
+		TransactionDepositInitiation,
+	},
+	// List transactions
+	Route{
+		"TransactionList",
+		"GET",
+		"/transaction/list/{perPage}/{page}",
+		TransactionList,
 	},
 }
 
