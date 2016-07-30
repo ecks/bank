@@ -209,7 +209,7 @@ func processDepositInitiation(transaction PAINTrans, sqlTime int32, feeAmount de
 }
 
 func getTransactionList(accountNumber string, offset int, perPage int) (allTransactions []PAINTrans, err error) {
-	rows, err := Config.Db.Query("SELECT `type`, `senderAccountNumber`, `senderBankNumber`, `receiverAccountNumber`, `receiverBankNumber`, `transactionAmount`, `feeAmount`, `desc`, `timestamp`, `status`, `geo` FROM `transactions` WHERE `senderAccountNumber` = ? OR `receiverAccountNumber` = ? LIMIT ?, ?", accountNumber, accountNumber, offset, perPage)
+	rows, err := Config.Db.Query("SELECT `type`, `senderAccountNumber`, `senderBankNumber`, `receiverAccountNumber`, `receiverBankNumber`, `transactionAmount`, `feeAmount`, `desc`, `timestamp`, `status`, `geo` FROM `transactions` WHERE `senderAccountNumber` = ? OR `receiverAccountNumber` = ?  ORDER BY `id` DESC LIMIT ?, ?", accountNumber, accountNumber, offset, perPage)
 	if err != nil {
 		return []PAINTrans{}, errors.New("transactions.ListTransactions: " + err.Error())
 	}
