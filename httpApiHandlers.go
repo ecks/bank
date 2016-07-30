@@ -251,7 +251,6 @@ func TransactionList(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	perPage := vars["perPage"]
 	page := vars["page"]
-	fmt.Printf("Vars at req: %v\n", vars)
 
 	response, err := transactions.ProcessPAIN([]string{token, "pain", "1001", page, perPage})
 	Response(response, err, w, r)
