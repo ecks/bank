@@ -1,4 +1,4 @@
-package payments
+package transactions
 
 /*
 PAIN transactions are as follows
@@ -17,6 +17,7 @@ Payments mandates:
 
 #### Custom payments
 1000 - CustomerDepositInitiation (@FIXME Will need to implement this properly, for now we use it to demonstrate functionality)
+1001 - ListTransactions
 
 */
 
@@ -27,6 +28,7 @@ import (
 
 	"github.com/bvnk/bank/appauth"
 	"github.com/bvnk/bank/push"
+	"github.com/paulmach/go.geo"
 	"github.com/shopspring/decimal"
 )
 
@@ -39,18 +41,18 @@ type AccountHolder struct {
 }
 
 type PAINTrans struct {
-	PainType int64
-	Sender   AccountHolder
-	Receiver AccountHolder
-	Amount   decimal.Decimal
-	Fee      decimal.Decimal
-	Lat      float64
-	Lon      float64
-	Desc     string
-	Status   string
+	PainType  int64
+	Sender    AccountHolder
+	Receiver  AccountHolder
+	Amount    decimal.Decimal
+	Fee       decimal.Decimal
+	Geo       geo.Point
+	Desc      string
+	Status    string
+	Timestamp int32
 }
 
-func ProcessPAIN(data []string) (result string, err error) {
+func ProcessPAIN(data []string) (result interface{}, err error) {
 	//There must be at least 3 elements
 	if len(data) < 3 {
 		return "", errors.New("payments.ProcessPAIN: Not all data is present. Run pain~help to check for needed PAIN data")
@@ -66,7 +68,7 @@ func ProcessPAIN(data []string) (result string, err error) {
 	case 1:
 		//There must be at least 9 elements
 		if len(data) < 9 {
-			return "", errors.New("payments.ProcessPAIN: Not all data is present. Run pain~help to check for needed PAIN data")
+			return "", errors.New("payments.ProcessPAIN: Not all data is present.")
 		}
 
 		result, err = painCreditTransferInitiation(painType, data)
@@ -78,9 +80,19 @@ func ProcessPAIN(data []string) (result string, err error) {
 		//There must be at least 8 elements
 		//token~pain~type~amount~lat~lon~desc
 		if len(data) < 8 {
-			return "", errors.New("payments.ProcessPAIN: Not all data is present. Run pain~help to check for needed PAIN data")
+			return "", errors.New("payments.ProcessPAIN: Not all data is present.")
 		}
 		result, err = customerDepositInitiation(painType, data)
+		if err != nil {
+			return "", errors.New("payments.ProcessPAIN: " + err.Error())
+		}
+		break
+	case 1001:
+		//token~pain~type~page~perpage
+		if len(data) < 5 {
+			return "", errors.New("payments.ProcessPAIN: Not all data is present.")
+		}
+		result, err = listTransactions(data)
 		if err != nil {
 			return "", errors.New("payments.ProcessPAIN: " + err.Error())
 		}
@@ -127,7 +139,8 @@ func painCreditTransferInitiation(painType int64, data []string) (result string,
 	}
 	desc := data[8]
 
-	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), lat, lon, desc, "approved"}
+	geo := *geo.NewPoint(lat, lon)
+	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), geo, desc, "approved", 0}
 
 	// Checks for transaction (avail balance, accounts open, etc)
 	balanceAvailable, err := checkBalance(transaction.Sender)
@@ -222,7 +235,8 @@ func customerDepositInitiation(painType int64, data []string) (result string, er
 	// Issue deposit
 	// @TODO This flow show be fixed. Maybe have banks approve deposits before initiation, or
 	// immediate approval below a certain amount subject to rate limiting
-	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), lat, lon, desc, "approved"}
+	geo := *geo.NewPoint(lat, lon)
+	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), geo, desc, "approved", 0}
 	// Save transaction
 	result, err = processPAINTransaction(transaction)
 	if err != nil {
@@ -230,6 +244,33 @@ func customerDepositInitiation(painType int64, data []string) (result string, er
 	}
 
 	go push.SendNotification(receiver.AccountNumber, "💸 Deposit received!", 5, "default")
+
+	return
+}
+
+func listTransactions(data []string) (result []PAINTrans, err error) {
+	tokenUserAccountNumber, err := appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
+	}
+
+	page, err := strconv.Atoi(data[3])
+	if err != nil {
+		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
+	}
+	perPage, err := strconv.Atoi(data[4])
+	if err != nil {
+		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
+	}
+	// We limit perPage to 100
+	if perPage > 100 {
+		return []PAINTrans{}, errors.New("payments.ListTransactions: Cannot retrieve more than 100 results per request")
+	}
+
+	result, err = getTransactionList(tokenUserAccountNumber, (page * perPage), perPage)
+	if err != nil {
+		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
+	}
 
 	return
 }

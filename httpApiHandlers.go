@@ -7,7 +7,7 @@ import (
 
 	"github.com/bvnk/bank/accounts"
 	"github.com/bvnk/bank/appauth"
-	"github.com/bvnk/bank/payments"
+	"github.com/bvnk/bank/transactions"
 	"github.com/gorilla/mux"
 )
 
@@ -204,7 +204,7 @@ func AccountSearch(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func PaymentCreditInitiation(w http.ResponseWriter, r *http.Request) {
+func TransactionCreditInitiation(w http.ResponseWriter, r *http.Request) {
 	token, err := getTokenFromHeader(w, r)
 	if err != nil {
 		Response("", err, w, r)
@@ -218,12 +218,12 @@ func PaymentCreditInitiation(w http.ResponseWriter, r *http.Request) {
 	lon := r.FormValue("Lon")
 	desc := r.FormValue("Desc")
 
-	response, err := payments.ProcessPAIN([]string{token, "pain", "1", senderDetails, recipientDetails, amount, lat, lon, desc})
+	response, err := transactions.ProcessPAIN([]string{token, "pain", "1", senderDetails, recipientDetails, amount, lat, lon, desc})
 	Response(response, err, w, r)
 	return
 }
 
-func PaymentDepositInitiation(w http.ResponseWriter, r *http.Request) {
+func TransactionDepositInitiation(w http.ResponseWriter, r *http.Request) {
 	token, err := getTokenFromHeader(w, r)
 	if err != nil {
 		Response("", err, w, r)
@@ -236,7 +236,24 @@ func PaymentDepositInitiation(w http.ResponseWriter, r *http.Request) {
 	lon := r.FormValue("Lon")
 	desc := r.FormValue("Desc")
 
-	response, err := payments.ProcessPAIN([]string{token, "pain", "1000", accountDetails, amount, lat, lon, desc})
+	response, err := transactions.ProcessPAIN([]string{token, "pain", "1000", accountDetails, amount, lat, lon, desc})
+	Response(response, err, w, r)
+	return
+}
+
+func TransactionList(w http.ResponseWriter, r *http.Request) {
+	token, err := getTokenFromHeader(w, r)
+	if err != nil {
+		Response("", err, w, r)
+		return
+	}
+
+	vars := mux.Vars(r)
+	perPage := vars["perPage"]
+	page := vars["page"]
+	fmt.Printf("Vars at req: %v\n", vars)
+
+	response, err := transactions.ProcessPAIN([]string{token, "pain", "1001", page, perPage})
 	Response(response, err, w, r)
 	return
 }
