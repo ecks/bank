@@ -41,6 +41,7 @@ type AccountHolder struct {
 }
 
 type PAINTrans struct {
+	ID        int32
 	PainType  int64
 	Sender    AccountHolder
 	Receiver  AccountHolder
@@ -140,7 +141,7 @@ func painCreditTransferInitiation(painType int64, data []string) (result string,
 	desc := data[8]
 
 	geo := *geo.NewPoint(lat, lon)
-	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), geo, desc, "approved", 0}
+	transaction := PAINTrans{0, painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), geo, desc, "approved", 0}
 
 	// Checks for transaction (avail balance, accounts open, etc)
 	balanceAvailable, err := checkBalance(transaction.Sender)
@@ -236,7 +237,7 @@ func customerDepositInitiation(painType int64, data []string) (result string, er
 	// @TODO This flow show be fixed. Maybe have banks approve deposits before initiation, or
 	// immediate approval below a certain amount subject to rate limiting
 	geo := *geo.NewPoint(lat, lon)
-	transaction := PAINTrans{painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), geo, desc, "approved", 0}
+	transaction := PAINTrans{0, painType, sender, receiver, transactionAmountDecimal, decimal.NewFromFloat(TRANSACTION_FEE), geo, desc, "approved", 0}
 	// Save transaction
 	result, err = processPAINTransaction(transaction)
 	if err != nil {
