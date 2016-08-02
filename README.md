@@ -41,6 +41,7 @@ In order to develop against this project, clone it using `git clone https://gith
 - `go get github.com/satori/go.uuid`
 - `go get gopkg.in/redis.v3`
 - `go get github.com/gorilla/mux`
+- `go get github.com/pzduniak/argon2`
 - `go get github.com/paulmach/go.geo`
 
 You can then `go build`.
