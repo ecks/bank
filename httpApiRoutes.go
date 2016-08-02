@@ -123,6 +123,13 @@ var routes = Routes{
 		"/transaction/list/{perPage}/{page}",
 		TransactionList,
 	},
+	// List transactions after ID
+	Route{
+		"TransactionList",
+		"GET",
+		"/transaction/list/{perPage}/{page}/{timestamp}",
+		TransactionList,
+	},
 }
 
 func NewRouter() *mux.Router {

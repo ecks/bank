@@ -267,6 +267,21 @@ func listTransactions(data []string) (result []PAINTrans, err error) {
 		return []PAINTrans{}, errors.New("payments.ListTransactions: Cannot retrieve more than 100 results per request")
 	}
 
+	// Check if timestamp present
+	if data[5] != "" {
+		timestamp, err := strconv.Atoi(data[5])
+		if err != nil {
+			return []PAINTrans{}, errors.New("payments.ListTransactions: Could not convert timestamp to int. " + err.Error())
+		}
+
+		result, err = getTransactionListAfterTimestamp(tokenUserAccountNumber, (page * perPage), perPage, timestamp)
+		if err != nil {
+			return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
+		}
+
+		return result, nil
+	}
+
 	result, err = getTransactionList(tokenUserAccountNumber, (page * perPage), perPage)
 	if err != nil {
 		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())

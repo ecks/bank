@@ -219,7 +219,25 @@ func getTransactionList(accountNumber string, offset int, perPage int) (allTrans
 	for rows.Next() {
 		transaction := PAINTrans{}
 		if err := rows.Scan(&transaction.PainType, &transaction.Sender.AccountNumber, &transaction.Sender.BankNumber, &transaction.Receiver.AccountNumber, &transaction.Receiver.BankNumber, &transaction.Amount, &transaction.Fee, &transaction.Desc, &transaction.Timestamp, &transaction.Status, &transaction.Geo); err != nil {
-			//@TODO Throw error
+			return []PAINTrans{}, errors.New("transactions.ListTransactions: " + err.Error())
+		}
+		allTransactions = append(allTransactions, transaction)
+	}
+
+	return
+}
+
+func getTransactionListAfterTimestamp(accountNumber string, offset int, perPage int, timestamp int) (allTransactions []PAINTrans, err error) {
+	rows, err := Config.Db.Query("SELECT `type`, `senderAccountNumber`, `senderBankNumber`, `receiverAccountNumber`, `receiverBankNumber`, `transactionAmount`, `feeAmount`, `desc`, `timestamp`, `status`, `geo` FROM `transactions` WHERE `timestamp` >= ? AND ( `senderAccountNumber` = ? OR `receiverAccountNumber` = ? ) ORDER BY `id` DESC LIMIT ?, ?", timestamp, accountNumber, accountNumber, offset, perPage)
+	if err != nil {
+		return []PAINTrans{}, errors.New("transactions.ListTransactions: " + err.Error())
+	}
+	defer rows.Close()
+
+	allTransactions = []PAINTrans{}
+	for rows.Next() {
+		transaction := PAINTrans{}
+		if err := rows.Scan(&transaction.PainType, &transaction.Sender.AccountNumber, &transaction.Sender.BankNumber, &transaction.Receiver.AccountNumber, &transaction.Receiver.BankNumber, &transaction.Amount, &transaction.Fee, &transaction.Desc, &transaction.Timestamp, &transaction.Status, &transaction.Geo); err != nil {
 			return []PAINTrans{}, errors.New("transactions.ListTransactions: " + err.Error())
 		}
 		allTransactions = append(allTransactions, transaction)
