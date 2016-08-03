@@ -80,6 +80,13 @@ var routes = Routes{
 		"/account/{accountId}",
 		AccountGet,
 	},
+	// Retrieve account number
+	Route{
+		"AccountGetNumber",
+		"GET",
+		"/accountRetrieve",
+		AccountRetrieve,
+	},
 	// Add push token to account
 	Route{
 		"AccountTokenPost",

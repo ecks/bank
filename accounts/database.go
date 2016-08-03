@@ -337,7 +337,7 @@ func doDeleteAccountPushToken(accountNumber string, pushToken string, platform s
 }
 
 func getAccountFromSearchData(searchString string) (allAccountDetails []AccountHolderDetails, err error) {
-	rows, err := Config.Db.Query("SELECT `accountNumber`, `bankNumber`, `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderEmailAddress` FROM `accounts_meta` WHERE `accountHolderIdentificationNumber` = ? OR `accountHolderGivenName` = ? OR `accountHolderFamilyName` = ? OR `accountHolderIdentificationNumber` = ? OR `accountHolderEmailAddress` = ? LIMIT 10", searchString, searchString, searchString, searchString, searchString)
+	rows, err := Config.Db.Query("SELECT `accountNumber`, `bankNumber`, `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderEmailAddress` FROM `accounts_meta` WHERE `accountHolderIdentificationNumber` = ? OR `accountHolderGivenName` = ? OR `accountHolderFamilyName` = ? OR  `accountHolderEmailAddress` = ? LIMIT 10", searchString, searchString, searchString, searchString)
 	if err != nil {
 		return []AccountHolderDetails{}, errors.New("accounts.getAccountMeta: " + err.Error())
 	}
@@ -352,6 +352,25 @@ func getAccountFromSearchData(searchString string) (allAccountDetails []AccountH
 			break
 		}
 		allAccountDetails = append(allAccountDetails, accountDetails)
+		count++
+	}
+
+	return
+}
+
+func getAccountByHolderDetails(ID string, givenName string, familyName string, email string) (accountID string, err error) {
+	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_meta` WHERE `accountHolderIdentificationNumber` = ? AND `accountHolderGivenName` = ? AND `accountHolderFamilyName` = ? AND `accountHolderEmailAddress` = ?", ID, givenName, familyName, email)
+	if err != nil {
+		return "", errors.New("accounts.getAccountByHolderDetails: " + err.Error())
+	}
+	defer rows.Close()
+
+	count := 0
+	for rows.Next() {
+		if err := rows.Scan(&accountID); err != nil {
+			//@TODO Throw error
+			break
+		}
 		count++
 	}
 

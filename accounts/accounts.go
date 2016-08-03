@@ -51,6 +51,7 @@ Accounts (acmt) transactions are as follows:
 1003 - AddAccountPushToken
 1004 - RemoveAccountPushToken
 1005 - SearchForAccount
+1006 - RetrieveAccount
 
 */
 
@@ -174,6 +175,15 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 			return
 		}
 		result, err = searchAccount(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	case 1006:
+		if len(data) < 7 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = retrieveAccount(data)
 		if err != nil {
 			return "", errors.New("accounts.ProcessAccount: " + err.Error())
 		}
@@ -419,6 +429,24 @@ func searchAccount(data []string) (accounts interface{}, err error) {
 	accounts, err = getAccountFromSearchData(searchString)
 	if err != nil {
 		return "", errors.New("accounts.searchAccount: Searching for account error. " + err.Error())
+	}
+
+	return
+}
+
+func retrieveAccount(data []string) (accountID string, err error) {
+	id := data[3]
+	givenName := data[4]
+	familyName := data[5]
+	email := data[6]
+
+	if id == "" || givenName == "" || familyName == "" || email == "" {
+		return "", errors.New("accounts.retrieveAccount: Not all fields present")
+	}
+
+	accountID, err = getAccountByHolderDetails(id, givenName, familyName, email)
+	if err != nil {
+		return "", errors.New("accounts.retrieveAccount: Could not retrieve account. " + err.Error())
 	}
 
 	return

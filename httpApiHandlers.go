@@ -148,6 +148,18 @@ func AccountGet(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func AccountRetrieve(w http.ResponseWriter, r *http.Request) {
+	// Set these in the header as they are sensitive
+	ID := r.Header.Get("X-IDNumber")
+	givenName := r.Header.Get("X-GivenName")
+	familyName := r.Header.Get("X-FamilyName")
+	email := r.Header.Get("X-EmailAddress")
+
+	response, err := accounts.ProcessAccount([]string{"", "acmt", "1006", ID, givenName, familyName, email})
+	Response(response, err, w, r)
+	return
+}
+
 func AccountGetAll(w http.ResponseWriter, r *http.Request) {
 	token, err := getTokenFromHeader(w, r)
 	if err != nil {
