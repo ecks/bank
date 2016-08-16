@@ -25,7 +25,7 @@ type Configuration struct {
 	PushEnv      string
 }
 
-var configPath = "../config.json"
+var configPath = "/Users/assis/dev/go/src/github.com/bvnk/bank/config.json"
 
 func LoadConfig() (configuration Configuration, err error) {
 	// Get config
