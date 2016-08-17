@@ -25,7 +25,10 @@ type Configuration struct {
 	PushEnv      string
 }
 
-var configPath = "../config.json"
+var goPath = os.Getenv("GOPATH")
+
+// The following path assumes default installation of source code
+var configPath = goPath + "/src/github.com/bvnk/bank/config.json"
 
 func LoadConfig() (configuration Configuration, err error) {
 	// Get config

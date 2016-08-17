@@ -1,7 +1,6 @@
 package accounts
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -232,7 +231,7 @@ func openAccount(data []string) (result interface{}, err error) {
 	return
 }
 
-func closeAccount(data []string) (result string, err error) {
+func closeAccount(data []string) (result interface{}, err error) {
 	// Validate string against required info/length
 	if len(data) < 14 {
 		err = errors.New("accounts.closeAccount: Not all fields present")
@@ -322,40 +321,32 @@ func fetchAccounts(data []string) (accounts interface{}, err error) {
 	return
 }
 
-func fetchSingleAccount(data []string) (result string, err error) {
+func fetchSingleAccount(data []string) (account interface{}, err error) {
 	// Fetch user account. Must be user logged in
 	tokenUser, err := appauth.GetUserFromToken(data[0])
 	if err != nil {
 		return "", errors.New("accounts.fetchSingleAccount: " + err.Error())
 	}
-	account, err := getSingleAccountDetail(tokenUser)
+	account, err = getSingleAccountDetail(tokenUser)
 	if err != nil {
 		return "", errors.New("accounts.fetchSingleAccount: " + err.Error())
 	}
 
-	// Parse into nice result string
-	jsonAccount, err := json.Marshal(account)
-	if err != nil {
-		return "", errors.New("accounts.fetchSingleAccount: " + err.Error())
-	}
-
-	result = string(jsonAccount)
 	return
 }
 
-func fetchSingleAccountByID(data []string) (result string, err error) {
+func fetchSingleAccountByID(data []string) (userAccountNumber interface{}, err error) {
 	// Format: token~acmt~1002~USERID
 	userID := data[3]
 	if userID == "" {
 		return "", errors.New("accounts.fetchSingleAccountByID: User ID not present")
 	}
 
-	userAccountNumber, err := getSingleAccountNumberByID(userID)
+	userAccountNumber, err = getSingleAccountNumberByID(userID)
 	if err != nil {
 		return "", errors.New("accounts.fetchSingleAccountByID: " + err.Error())
 	}
 
-	result = userAccountNumber
 	return
 }
 
