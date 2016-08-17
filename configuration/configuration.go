@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"flag"
+	"github.com/kardianos/osext"
+	"log"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -20,12 +23,18 @@ type Configuration struct {
 	RedisHost    string
 	RedisPort    string
 	PasswordSalt string
+	FQDN         string
+	HttpPort     string
 	Db           *sql.DB
 	Redis        *redis.Client
 	PushEnv      string
 }
 
-var configPath = "/Users/assis/dev/go/src/github.com/bvnk/bank/config.json"
+// Initialization of the working directory. Needed to load asset files.
+var ImportPath = determineWorkingDirectory()
+
+//configPath must be an absolute path in order for the executable to work anywhere on the system
+var configPath = ImportPath + "config.json"
 
 func LoadConfig() (configuration Configuration, err error) {
 	// Get config
@@ -63,4 +72,27 @@ func loadRedis(configuration *Configuration) {
 		DB:       0,  // use default DB
 	})
 
+}
+
+func determineWorkingDirectory() string {
+	var customPath string
+
+	// Check if a custom path has been provided by the user.
+	flag.StringVar(&customPath, "p", "", "Specify a custom path to the asset files. This needs to be an absolute path.")
+	flag.Parse()
+
+	// Get the absolute path this executable is located in.
+	executablePath, err := osext.ExecutableFolder()
+
+	if err != nil {
+		log.Fatal("Error: Couldn't determine working directory: " + err.Error())
+	}
+	// Set the working directory to the path the executable is located in.
+	os.Chdir(executablePath)
+
+	// Return the user-specified path. Empty string if no path was provided.
+	if customPath != "" {
+		return customPath + "/"
+	}
+	return customPath
 }

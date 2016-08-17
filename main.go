@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"log"
 	"os"
 )
@@ -17,8 +18,9 @@ const (
 func main() {
 	argClientServer := "http"
 	// http server is default mode
-	if len(os.Args) > 1 {
-		argClientServer = os.Args[1]
+
+	if flag.Arg(0) != "" {
+		argClientServer = flag.Arg(0)
 	}
 
 	err := parseArguments(argClientServer)
@@ -29,6 +31,7 @@ func main() {
 }
 
 func parseArguments(arg string) (err error) {
+
 	switch arg {
 	case "http":
 		err := RunHttpServer()

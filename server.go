@@ -17,8 +17,6 @@ import (
 	"github.com/bvnk/bank/transactions"
 )
 
-var Config configuration.Configuration
-
 func runServer(mode string) (message string, err error) {
 
 	// Load app config
@@ -35,7 +33,7 @@ func runServer(mode string) (message string, err error) {
 
 	switch mode {
 	case "tls":
-		cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
+		cert, err := tls.LoadX509KeyPair(configuration.ImportPath+"certs/server.pem", configuration.ImportPath+"certs/server.key")
 		if err != nil {
 			return "", err
 		}

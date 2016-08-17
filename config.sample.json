@@ -7,5 +7,8 @@
     "TimeZone"          :   "America/New_York",
     "RedisHost"         :   "redis_host",
     "RedisPort"         :   "redis_port",
-    "PasswordSalt"      :   "strong_salt"
+    "FQDN"      	:   "your_domain",
+    "HttpPort"      	:   "8443",
+    "PasswordSalt"      :   "strong_salt",
 }
+
