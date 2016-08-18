@@ -7,6 +7,8 @@ import (
 	"log"
 	"net"
 	"os"
+
+	"github.com/bvnk/bank/configuration"
 )
 
 func runClient(mode string) {
@@ -36,7 +38,7 @@ func sendToServer(text string, mode string) (message string, err error) {
 	switch mode {
 	case "tls":
 		// Connect to this socket
-		cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
+		cert, err := tls.LoadX509KeyPair(configuration.ImportPath+"certs/client.pem", configuration.ImportPath+"certs/client.key")
 		if err != nil {
 			return "", err
 		}

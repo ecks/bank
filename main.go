@@ -2,13 +2,14 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"log"
 	"os"
 )
 
 const (
 	// This is the FQDN from the certs generated
-	CONN_HOST = "thebankoftoday.com"
+	CONN_HOST = "localhost"
 	CONN_PORT = "3300"
 	CONN_TYPE = "tcp"
 	HTTP_PORT = "8443"
@@ -17,8 +18,9 @@ const (
 func main() {
 	argClientServer := "http"
 	// http server is default mode
-	if len(os.Args) > 1 {
-		argClientServer = os.Args[1]
+
+	if flag.Arg(0) != "" {
+		argClientServer = flag.Arg(0)
 	}
 
 	err := parseArguments(argClientServer)
@@ -29,6 +31,7 @@ func main() {
 }
 
 func parseArguments(arg string) (err error) {
+
 	switch arg {
 	case "http":
 		err := RunHttpServer()

@@ -43,6 +43,7 @@ In order to develop against this project, clone it using `git clone https://gith
 - `go get github.com/gorilla/mux`
 - `go get github.com/pzduniak/argon2`
 - `go get github.com/paulmach/go.geo`
+- `go get github.com/kardianos/osext`
 
 You can then `go build`.
 
