@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 	"github.com/kardianos/osext"
 	"log"
 	"os"
@@ -70,7 +69,7 @@ func LoadConfig() (configuration Configuration, err error) {
 	file, _ := os.Open(configPath)
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&configuration)
-	fmt.Println("Path: ", configPath)
+
 	if err != nil {
 		return Configuration{}, errors.New("configuration.LoadConfig: Could not load config. " + err.Error())
 	}
