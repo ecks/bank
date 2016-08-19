@@ -3,7 +3,7 @@ package push
 import (
 	"testing"
 
-	"github.com/ksred/bank/configuration"
+	"github.com/bvnk/bank/configuration"
 )
 
 func TestSetConfig(t *testing.T) {
@@ -14,4 +14,11 @@ func TestSetConfig(t *testing.T) {
 	}
 	// Set config in packages
 	SetConfig(&Config)
+}
+
+func TestDoSendNotificationAPNS(t *testing.T) {
+	err := doSendNotificationAPNS("TOKEN", "Testing from CLI ⚡️", 1, "default")
+	if err != nil {
+		t.Errorf("TestPush.SendNotification: %v", err)
+	}
 }

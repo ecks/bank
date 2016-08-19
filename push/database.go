@@ -24,7 +24,7 @@ func loadDatabase() (db *sql.DB, err error) {
 }
 
 func getPushTokens(accountNumber string) (pushDevices []PushDevice, err error) {
-	rows, err := Config.Db.Query("SELECT `token`, `platform` FROM `accounts_push_tokens` WHERE `accountNumber` = ?", accountNumber)
+	rows, err := Config.Db.Query("SELECT DISTINCT `token`, `platform` FROM `accounts_push_tokens` WHERE `accountNumber` = ?", accountNumber)
 	if err != nil {
 		return []PushDevice{}, errors.New("push.getPushTokens: " + err.Error())
 	}

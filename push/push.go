@@ -5,6 +5,8 @@ package push
 
 import (
 	"errors"
+	"fmt"
+	"os"
 
 	"github.com/ksred/apns"
 )
@@ -26,7 +28,10 @@ func SendNotification(accountNumber string, message string, badge uint, sound st
 		// Switch on device type
 		switch pd.Platform {
 		case "ios":
-			doSendNotificationAPNS(pd.Token, message, badge, sound)
+			err = doSendNotificationAPNS(pd.Token, message, badge, sound)
+			if err != nil {
+				return err
+			}
 		default:
 			// Not supported yet
 			return nil
@@ -35,41 +40,54 @@ func SendNotification(accountNumber string, message string, badge uint, sound st
 	return nil
 }
 
-func doSendNotificationAPNS(token string, message string, badge uint, sound string) {
+func doSendNotificationAPNS(token string, message string, badge uint, sound string) (err error) {
 	// Set vars
 	var gateway string
 	var apnsCert string
 	var apnsKey string
-	var notificationSound string
+	//var notificationSound string
+	path := os.Getenv("GOPATH")
 
 	// Get env
 	switch Config.PushEnv {
 	case "development", "production":
 		gateway = apns.ProductionGateway
-		apnsCert = "../certs/apns-cert.pem"
-		apnsKey = "../certs/apns-prod.pem"
+		apnsCert = path + "/src/github.com/bvnk/bank/certs/aps-bvnk.pem"
+		apnsKey = path + "/src/github.com/bvnk/bank/certs/bvnk-push-production.pem"
 		break
 	}
 
 	// Fetch relevant sound
-	switch sound {
-	case "alert", "default":
-		sound = "bvnk_default.aiff"
-		break
-	}
+	/*
+		switch sound {
+		case "alert", "default":
+			sound = "bvnk_default.aiff"
+			break
+		}
+	*/
 
 	// Send notification
-	c, _ := apns.NewClient(gateway, apnsCert, apnsKey)
+	c, err := apns.NewClientWithFiles(gateway, apnsCert, apnsKey)
+	if err != nil {
+		return errors.New("Could not create client: " + err.Error())
+	}
+	fmt.Println(gateway)
+	fmt.Println(apnsCert)
+	fmt.Println(apnsKey)
 
 	p := apns.NewPayload()
 	p.APS.Alert.Body = message
 	p.APS.Badge.Set(badge)
-	p.APS.Sound = notificationSound
+
+	//p.SetCustomValue("link", "yourapp://precache/20140718")
 
 	m := apns.NewNotification()
 	m.Payload = p
 	m.DeviceToken = token
 	m.Priority = apns.PriorityImmediate
+	m.Identifier = uint32(1)
 
 	c.Send(m)
+
+	return
 }

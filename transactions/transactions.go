@@ -159,8 +159,8 @@ func painCreditTransferInitiation(painType int64, data []string) (result string,
 		return "", errors.New("payments.painCreditTransferInitiation: " + err.Error())
 	}
 
-	go push.SendNotification(sender.AccountNumber, "💸 Payment sent!", 5, "default")
-	go push.SendNotification(receiver.AccountNumber, "💸 Payment received!", 5, "default")
+	go push.SendNotification(sender.AccountNumber, "💸 Payment sent!", 1, "default")
+	go push.SendNotification(receiver.AccountNumber, "💸 Payment received!", 1, "default")
 
 	return
 }
@@ -244,7 +244,7 @@ func customerDepositInitiation(painType int64, data []string) (result string, er
 		return "", errors.New("payments.CustomerDepositInitiation: " + err.Error())
 	}
 
-	go push.SendNotification(receiver.AccountNumber, "💸 Deposit received!", 5, "default")
+	go push.SendNotification(receiver.AccountNumber, "💸 Deposit received!", 1, "default")
 
 	return
 }
