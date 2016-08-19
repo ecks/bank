@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ksred/bank/configuration"
+	"github.com/bvnk/bank/configuration"
 	"github.com/shopspring/decimal"
 )
 
@@ -21,6 +21,7 @@ func TestLoadConfiguration(t *testing.T) {
 func TestLoadDatabase(t *testing.T) {
 	// Load app config
 	Config, err := configuration.LoadConfig()
+	fmt.Println("Config: ", Config)
 	if err != nil {
 		t.Errorf("loadDatabase does not pass. Configuration does not load, looking for %v, got %v", nil, err)
 	}
