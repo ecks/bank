@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"github.com/kardianos/osext"
 	"log"
 	"os"
@@ -31,16 +32,17 @@ type Configuration struct {
 }
 
 // Initialization of the working directory. Needed to load asset files.
-var ImportPath = determineWorkingDirectory()
+var ImportPath = os.Getenv("GOPATH")
 
-//configPath must be an absolute path in order for the executable to work anywhere on the system
-var configPath = ImportPath + "config.json"
+//When running "go test", configPath must be an absolute path to config.json
+var configPath = ImportPath + "/src/github.com/bvnk/bank/config.json"
 
 func LoadConfig() (configuration Configuration, err error) {
 	// Get config
 	file, _ := os.Open(configPath)
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&configuration)
+	fmt.Println("Path: ", configPath)
 	if err != nil {
 		return Configuration{}, errors.New("configuration.LoadConfig: Could not load config. " + err.Error())
 	}
