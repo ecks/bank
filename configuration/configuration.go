@@ -47,6 +47,7 @@ func LoadConfig() (configuration Configuration, err error) {
 
 	//Go uses this path during tests
 	tempDir := os.TempDir()
+	//fmt.Println("TempDir: ", workingDir)
 
 	//Check if testing
 	isTest := strings.Index(workingDir, tempDir)
@@ -60,7 +61,7 @@ func LoadConfig() (configuration Configuration, err error) {
 			@TODO Implement a more generic workaround
 		*/
 		workingDir = regexp.MustCompile(".*github").ReplaceAllString(workingDir, "github")
-		ImportPath = os.Getenv("GOPATH") + "/src/" + regexp.MustCompile("bank/.*/_test").ReplaceAllString(workingDir, "bank/")
+		ImportPath = os.Getenv("GOPATH") + "/src/" + regexp.MustCompile("/bank/.*").ReplaceAllString(workingDir, "/bank/")
 	}
 
 	var configPath = ImportPath + "config.json"
