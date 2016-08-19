@@ -32,10 +32,10 @@ type Configuration struct {
 }
 
 // Initialization of the working directory. Needed to load asset files.
-var ImportPath = os.Getenv("GOPATH")
+var ImportPath = os.Getenv("GOPATH") + "/src/github.com/bvnk/bank/"
 
 //When running "go test", configPath must be an absolute path to config.json
-var configPath = ImportPath + "/src/github.com/bvnk/bank/config.json"
+var configPath = ImportPath + "config.json"
 
 func LoadConfig() (configuration Configuration, err error) {
 	// Get config
