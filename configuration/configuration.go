@@ -8,6 +8,8 @@ import (
 	"github.com/kardianos/osext"
 	"log"
 	"os"
+	"regexp"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/redis.v3"
@@ -31,16 +33,44 @@ type Configuration struct {
 }
 
 // Initialization of the working directory. Needed to load asset files.
-var ImportPath = determineWorkingDirectory()
+var ImportPath = os.Getenv("GOPATH") + "/src/github.com/bvnk/bank/"
 
-//configPath must be an absolute path in order for the executable to work anywhere on the system
+//configPath must be an absolute path
 var configPath = ImportPath + "config.json"
 
 func LoadConfig() (configuration Configuration, err error) {
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return Configuration{}, errors.New("configuration.LoadConfig: Could not load config. " + err.Error())
+	}
+
+	//Go uses this path during tests
+	tempDir := os.TempDir()
+	//fmt.Println("TempDir: ", workingDir)
+
+	//Check if testing
+	isTest := strings.Index(workingDir, tempDir)
+
+	if isTest != -1 {
+		/*
+			We're testing, so we must be in Go's temp directory
+			We can assume the import path is github.com/[user]/bank
+			We will replace anything before github with GOPATH/src
+			We will also remove anything after bank
+			@TODO Implement a more generic workaround
+		*/
+		workingDir = regexp.MustCompile(".*github").ReplaceAllString(workingDir, "github")
+		ImportPath = os.Getenv("GOPATH") + "/src/" + regexp.MustCompile("/bank/.*").ReplaceAllString(workingDir, "/bank/")
+	}
+
+	var configPath = ImportPath + "config.json"
+
 	// Get config
 	file, _ := os.Open(configPath)
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&configuration)
+
 	if err != nil {
 		return Configuration{}, errors.New("configuration.LoadConfig: Could not load config. " + err.Error())
 	}
