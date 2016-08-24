@@ -6,7 +6,6 @@ package push
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/ksred/apns"
 )
@@ -46,14 +45,13 @@ func doSendNotificationAPNS(token string, message string, badge uint, sound stri
 	var apnsCert string
 	var apnsKey string
 	//var notificationSound string
-	path := os.Getenv("GOPATH")
 
 	// Get env
 	switch Config.PushEnv {
 	case "development", "production":
 		gateway = apns.ProductionGateway
-		apnsCert = path + "/src/github.com/bvnk/bank/certs/aps-bvnk.pem"
-		apnsKey = path + "/src/github.com/bvnk/bank/certs/bvnk-push-production.pem"
+		apnsCert = Config.ApplePushCert
+		apnsKey = Config.ApplePushKey
 		break
 	}
 

@@ -5,31 +5,34 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"github.com/kardianos/osext"
 	"log"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/kardianos/osext"
 
 	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/redis.v3"
 )
 
 type Configuration struct {
-	TimeZone     string
-	MySQLUser    string
-	MySQLPass    string
-	MySQLHost    string
-	MySQLPort    string
-	MySQLDB      string
-	RedisHost    string
-	RedisPort    string
-	PasswordSalt string
-	FQDN         string
-	HttpPort     string
-	Db           *sql.DB
-	Redis        *redis.Client
-	PushEnv      string
+	TimeZone      string
+	MySQLUser     string
+	MySQLPass     string
+	MySQLHost     string
+	MySQLPort     string
+	MySQLDB       string
+	RedisHost     string
+	RedisPort     string
+	PasswordSalt  string
+	FQDN          string
+	HttpPort      string
+	Db            *sql.DB
+	Redis         *redis.Client
+	PushEnv       string
+	ApplePushCert string
+	ApplePushKey  string
 }
 
 // Initialization of the working directory. Needed to load asset files.
