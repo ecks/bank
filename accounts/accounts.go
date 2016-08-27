@@ -204,12 +204,6 @@ func openAccount(data []string) (result interface{}, err error) {
 	}
 
 	// Test: acmt~1~Kyle~Redelinghuys~19000101~190001011234098~1112223456~~email@domain.com~Physical Address 1~~~1000
-	// Check if account already exists, check on ID number
-	accountHolder, _ := getAccountMeta(data[6])
-	if accountHolder.AccountNumber != "" {
-		return "", errors.New("accounts.openAccount: Account already open. " + accountHolder.AccountNumber)
-	}
-
 	// @FIXME: Remove new line from data
 	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
 
