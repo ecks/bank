@@ -99,6 +99,7 @@ type AccountDetails struct {
 	AccountBalance    decimal.Decimal
 	Overdraft         decimal.Decimal
 	AvailableBalance  decimal.Decimal
+	Type              string
 	Timestamp         int
 }
 
@@ -267,6 +268,20 @@ func setAccountDetails(data []string) (accountDetails AccountDetails, err error)
 	accountDetails.AccountBalance = decimal.NewFromFloat(OPENING_BALANCE)
 	accountDetails.Overdraft = decimal.NewFromFloat(OPENING_OVERDRAFT)
 	accountDetails.AvailableBalance = decimal.NewFromFloat(OPENING_BALANCE + OPENING_OVERDRAFT)
+	// Get account type
+	accountType := data[14]
+	switch accountType {
+	case "":
+		accountType = "cheque" // Default to chequing account
+		break
+	case "savings", "cheque", "merchant", "money-market", "cd", "ira", "rcp", "credit", "mortgage", "loan":
+		// Valid
+		break
+	default:
+		return AccountDetails{}, errors.New("accounts.setAccountDetails: Account type not valid, must be one of savings, cheque, merchant, money-market, cd, ira, rcp, credit, mortgage, loan")
+		break
+	}
+	accountDetails.Type = accountType
 
 	return
 }

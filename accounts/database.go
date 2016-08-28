@@ -73,8 +73,8 @@ func deleteAccount(accountDetails *AccountDetails, accountHolderDetails *Account
 
 func doCreateAccount(sqlTime int32, accountDetails *AccountDetails, accountHolderDetails *AccountHolderDetails) (err error) {
 	// Create account
-	insertStatement := "INSERT INTO accounts (`accountNumber`, `bankNumber`, `accountHolderName`, `accountBalance`, `overdraft`, `availableBalance`, `timestamp`) "
-	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?)"
+	insertStatement := "INSERT INTO accounts (`accountNumber`, `bankNumber`, `accountHolderName`, `accountBalance`, `overdraft`, `availableBalance`, `type`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, ?)"
 	stmtIns, err := Config.Db.Prepare(insertStatement)
 	if err != nil {
 		return errors.New("accounts.doCreateAccount: " + err.Error())
@@ -87,7 +87,7 @@ func doCreateAccount(sqlTime int32, accountDetails *AccountDetails, accountHolde
 	newUuid := uuid.NewV4()
 	accountDetails.AccountNumber = newUuid.String()
 
-	_, err = stmtIns.Exec(accountDetails.AccountNumber, accountDetails.BankNumber, accountDetails.AccountHolderName, accountDetails.AccountBalance, accountDetails.Overdraft, accountDetails.AvailableBalance, sqlTime)
+	_, err = stmtIns.Exec(accountDetails.AccountNumber, accountDetails.BankNumber, accountDetails.AccountHolderName, accountDetails.AccountBalance, accountDetails.Overdraft, accountDetails.AvailableBalance, accountDetails.Type, sqlTime)
 	if err != nil {
 		return errors.New("accounts.doCreateAccount: " + err.Error())
 	}
@@ -129,6 +129,17 @@ func doDeleteAccount(accountDetails *AccountDetails) (err error) {
 }
 
 func doCreateAccountUser(sqlTime int32, accountHolderDetails *AccountHolderDetails, accountDetails *AccountDetails) (err error) {
+	// Check if the user already exists
+	account, err := getAccountUser(accountHolderDetails.IdentificationNumber)
+	if err != nil {
+		return errors.New("accounts.doCreateAccountUser: " + err.Error())
+	}
+
+	// If account is not empty it exists, return without creating a new one
+	if account != (AccountHolderDetails{}) {
+		return
+	}
+
 	// Create account meta
 	insertStatement := "INSERT INTO accounts_users (`accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderDateOfBirth`, `accountHolderIdentificationNumber`, `accountHolderContactNumber1`, `accountHolderContactNumber2`, `accountHolderEmailAddress`, `accountHolderAddressLine1`, `accountHolderAddressLine2`, `accountHolderAddressLine3`, `accountHolderPostalCode`, `timestamp`) "
 	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"

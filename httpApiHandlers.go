@@ -110,6 +110,7 @@ func AccountCreate(w http.ResponseWriter, r *http.Request) {
 	accountHolderAddressLine2 := r.FormValue("AccountHolderAddressLine2")
 	accountHolderAddressLine3 := r.FormValue("AccountHolderAddressLine3")
 	accountHolderPostalCode := r.FormValue("AccountHolderPostalCode")
+	accountType := r.FormValue("AccountType")
 
 	req := []string{
 		"0",
@@ -126,6 +127,7 @@ func AccountCreate(w http.ResponseWriter, r *http.Request) {
 		accountHolderAddressLine2,
 		accountHolderAddressLine3,
 		accountHolderPostalCode,
+		accountType,
 	}
 
 	response, err := accounts.ProcessAccount(req)
