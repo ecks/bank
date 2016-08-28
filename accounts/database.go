@@ -259,10 +259,6 @@ func getAccountUser(id string) (accountDetails AccountHolderDetails, err error) 
 		count++
 	}
 
-	if count == 0 {
-		return AccountHolderDetails{}, errors.New("accounts.getAccountUser: Account not found")
-	}
-
 	return
 }
 

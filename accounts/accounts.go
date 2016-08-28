@@ -2,7 +2,6 @@ package accounts
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -195,7 +194,7 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 
 func openAccount(data []string) (result interface{}, err error) {
 	// Validate string against required info/length
-	if len(data) < 14 {
+	if len(data) < 15 {
 		err = errors.New("accounts.openAccount: Not all fields present")
 		return
 	}
@@ -224,7 +223,7 @@ func openAccount(data []string) (result interface{}, err error) {
 
 func closeAccount(data []string) (result interface{}, err error) {
 	// Validate string against required info/length
-	if len(data) < 14 {
+	if len(data) < 15 {
 		err = errors.New("accounts.closeAccount: Not all fields present")
 		return
 	}
@@ -256,7 +255,10 @@ func closeAccount(data []string) (result interface{}, err error) {
 }
 
 func setAccountDetails(data []string) (accountDetails AccountDetails, err error) {
-	fmt.Println(data)
+	if len(data) < 15 {
+		return AccountDetails{}, errors.New("accounts.setAccountDetails: Not all fields required present")
+	}
+
 	if data[4] == "" {
 		return AccountDetails{}, errors.New("accounts.setAccountDetails: Family name cannot be empty")
 	}

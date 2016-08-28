@@ -52,7 +52,24 @@ func TestOpenCloseAccount(t *testing.T) {
 }
 
 func TestSetAccountDetails(t *testing.T) {
-	tst := []string{"", "", "", "John", "Doe"}
+	tst := []string{
+		"", // 0
+		"", // acmt
+		"", // 1
+		"John",
+		"Doe",
+		"1900-01-01",
+		"19000101-1000-100",
+		"555-123-1234",
+		"",
+		"test@user.com",
+		"Address 1",
+		"Address 2",
+		"Address 3",
+		"22202",
+		"cheque",
+	}
+
 	accountDetails, err := setAccountDetails(tst)
 
 	if err != nil {
@@ -61,10 +78,6 @@ func TestSetAccountDetails(t *testing.T) {
 
 	if reflect.TypeOf(accountDetails).String() != "accounts.AccountDetails" {
 		t.Errorf("SetAccountDetails does not pass. TYPE. Looking for %v, got %v", "accounts.AccountDetails", reflect.TypeOf(accountDetails).String())
-	}
-
-	if accountDetails.BankNumber != BANK_NUMBER {
-		t.Errorf("SetAccountDetails does not pass. DETAILS. Looking for %v, got %v", BANK_NUMBER, accountDetails.BankNumber)
 	}
 
 	if !accountDetails.Overdraft.Equals(decimal.NewFromFloat(OPENING_OVERDRAFT)) {
@@ -93,7 +106,7 @@ func TestSetAccountHolderDetailsFailure(t *testing.T) {
 }
 
 func TestSetAccountHolderDetails(t *testing.T) {
-	tst := []string{"", "", "", "John", "Doe", "01011900", "010119001234123", "111", "222", "user@domain.com", "address 1", "address 2", "address 3", "2000"}
+	tst := []string{"", "", "", "John", "Doe", "01011900", "010119001234123", "111", "222", "user@domain.com", "address 1", "address 2", "address 3", "2000", "cheque"}
 	accountHolderDetails, err := setAccountHolderDetails(tst)
 
 	if err != nil {
@@ -102,10 +115,6 @@ func TestSetAccountHolderDetails(t *testing.T) {
 
 	if reflect.TypeOf(accountHolderDetails).String() != "accounts.AccountHolderDetails" {
 		t.Errorf("SetAccountHolderDetails does not pass. TYPE. Looking for %v, got %v", "accounts.AccountHolderDetails", reflect.TypeOf(accountHolderDetails).String())
-	}
-
-	if accountHolderDetails.BankNumber != BANK_NUMBER {
-		t.Errorf("SetAccountHolderDetails does not pass. DETAILS. Looking for %v, got %v", BANK_NUMBER, accountHolderDetails.BankNumber)
 	}
 
 	if accountHolderDetails.GivenName != "John" {
@@ -155,9 +164,31 @@ func TestSetAccountHolderDetails(t *testing.T) {
 
 func BenchmarkSetAccountHolderDetails(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		tst := []string{"", "", "", "John", "Doe", "01011900", "010119001234123", "111", "222", "user@domain.com", "address 1", "address 2", "address 3", "2000"}
+		tst := []string{"", "", "", "John", "Doe", "01011900", "010119001234123", "111", "222", "user@domain.com", "address 1", "address 2", "address 3", "2000", "cheque"}
 		_, _ = setAccountHolderDetails(tst)
 	}
+}
+
+func TestSetAccountHolderDetailsSuccessAccountType(t *testing.T) {
+	accountTypes := []string{"savings", "cheque", "merchant", "money-market", "cd", "ira", "rcp", "credit", "mortgage", "loan"}
+	for _, v := range accountTypes {
+		tst := []string{"", "", "", "John", "Doe", "01011900", "010119001234123", "111", "222", "user@domain.com", "address 1", "address 2", "address 3", "2000", v}
+		_, err := setAccountHolderDetails(tst)
+
+		if err != nil {
+			t.Errorf("SetAccountHolderDetails does not pass.  Looking for %v, got %v", nil, err)
+		}
+	}
+}
+
+func TestSetAccountHolderDetailsFailureAccountType(t *testing.T) {
+	tst := []string{"", "", "", "John", "Doe", "01011900", "010119001234123", "111", "222", "user@domain.com", "address 1", "address 2", "address 3", "2000", "not-valid-account-type"}
+	_, err := setAccountHolderDetails(tst)
+
+	if err != nil {
+		t.Errorf("SetAccountHolderDetails does not pass.  Looking for %v, got %v", nil, err)
+	}
+
 }
 
 /* @TODO
