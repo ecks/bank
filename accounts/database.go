@@ -224,7 +224,7 @@ func getAccountDetails(id string) (accountDetails AccountDetails, err error) {
 	}
 
 	if count > 1 {
-		//@TODO: Allow user to have multiple accounts
+		// There cannot be more than one account with the same accountNumber
 		return AccountDetails{}, errors.New("accounts.getAccountDetails: More than one account found")
 	}
 
