@@ -259,13 +259,19 @@ func TransactionList(w http.ResponseWriter, r *http.Request) {
 		Response("", err, w, r)
 		return
 	}
+	// Get account number from header
+	accountNumber := r.Header.Get("X-Auth-AccountNumber")
+	if accountNumber == "" {
+		Response("", errors.New("httpApiHandlers.TransactionList: Could not retrieve accountNumber from headers"), w, r)
+		return
+	}
 
 	vars := mux.Vars(r)
 	perPage := vars["perPage"]
 	page := vars["page"]
 	timestamp := vars["timestamp"]
 
-	response, err := transactions.ProcessPAIN([]string{token, "pain", "1001", page, perPage, timestamp})
+	response, err := transactions.ProcessPAIN([]string{token, "pain", "1001", accountNumber, page, perPage, timestamp})
 	Response(response, err, w, r)
 	return
 }

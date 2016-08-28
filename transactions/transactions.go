@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bvnk/bank/accounts"
 	"github.com/bvnk/bank/appauth"
 	"github.com/bvnk/bank/push"
 	"github.com/paulmach/go.geo"
@@ -126,7 +127,9 @@ func painCreditTransferInitiation(painType int64, data []string) (result string,
 	if err != nil {
 		return "", errors.New("payments.painCreditTransferInitiation: " + err.Error())
 	}
-	if tokenUser != sender.AccountNumber {
+	//
+	err = accounts.CheckUserAccountValidFromToken(tokenUser, sender.AccountNumber)
+	if err != nil {
 		return "", errors.New("payments.painCreditTransferInitiation: Sender not valid")
 	}
 

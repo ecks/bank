@@ -420,3 +420,23 @@ func retrieveAccount(data []string) (accountIDs []string, err error) {
 
 	return
 }
+
+func CheckUserAccountValidFromToken(userID string, accountNumber string) (err error) {
+	// Get list of accounts from userID
+	userAccountNumbers, err := getAllAccountNumbersByID(userID)
+	if err != nil {
+		return errors.New("accounts.CheckUserAccountValidFromToken: " + err.Error())
+	}
+
+	senderValid := false
+	for _, v := range userAccountNumbers {
+		if strings.Compare(v, accountNumber) == 0 {
+			senderValid = true
+		}
+	}
+
+	if !senderValid {
+		return errors.New("accounts.accounts.CheckUserAccountValidFromToken: Sender invalid")
+	}
+	return
+}
