@@ -34,12 +34,17 @@ func createAccount(accountDetails *AccountDetails, accountHolderDetails *Account
 	t := time.Now()
 	sqlTime := int32(t.Unix())
 
-	err = doCreateAccount(sqlTime, accountDetails)
+	err = doCreateAccount(sqlTime, accountDetails, accountHolderDetails)
 	if err != nil {
 		return errors.New("accounts.createAccount: " + err.Error())
 	}
 
-	err = doCreateAccountMeta(sqlTime, accountHolderDetails, accountDetails)
+	err = doCreateAccountUser(sqlTime, accountHolderDetails, accountDetails)
+	if err != nil {
+		return errors.New("accounts.createAccount: " + err.Error())
+	}
+
+	err = doCreateAccountUserAccount(sqlTime, accountHolderDetails, accountDetails)
 	if err != nil {
 		return errors.New("accounts.createAccount: " + err.Error())
 	}
@@ -53,7 +58,12 @@ func deleteAccount(accountDetails *AccountDetails, accountHolderDetails *Account
 		return errors.New("accounts.deleteAccount: " + err.Error())
 	}
 
-	err = doDeleteAccountMeta(accountHolderDetails, accountDetails)
+	err = doDeleteAccountUser(accountHolderDetails)
+	if err != nil {
+		return errors.New("accounts.deleteAccount: " + err.Error())
+	}
+
+	err = doDeleteAccountUserAccounts(accountHolderDetails)
 	if err != nil {
 		return errors.New("accounts.deleteAccount: " + err.Error())
 	}
@@ -61,7 +71,7 @@ func deleteAccount(accountDetails *AccountDetails, accountHolderDetails *Account
 	return
 }
 
-func doCreateAccount(sqlTime int32, accountDetails *AccountDetails) (err error) {
+func doCreateAccount(sqlTime int32, accountDetails *AccountDetails, accountHolderDetails *AccountHolderDetails) (err error) {
 	// Create account
 	insertStatement := "INSERT INTO accounts (`accountNumber`, `bankNumber`, `accountHolderName`, `accountBalance`, `overdraft`, `availableBalance`, `timestamp`) "
 	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?)"
@@ -78,6 +88,22 @@ func doCreateAccount(sqlTime int32, accountDetails *AccountDetails) (err error) 
 	accountDetails.AccountNumber = newUuid.String()
 
 	_, err = stmtIns.Exec(accountDetails.AccountNumber, accountDetails.BankNumber, accountDetails.AccountHolderName, accountDetails.AccountBalance, accountDetails.Overdraft, accountDetails.AvailableBalance, sqlTime)
+	if err != nil {
+		return errors.New("accounts.doCreateAccount: " + err.Error())
+	}
+
+	// We insert a record into account user accounts
+	insertStatement = "INSERT INTO accounts_user_accounts (`accountHolderIdentificationNumber`, `accountNumbe`, `bankNumber`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?)"
+	stmtIns, err = Config.Db.Prepare(insertStatement)
+	if err != nil {
+		return errors.New("accounts.doCreateAccount: " + err.Error())
+	}
+
+	// Prepare statement for inserting data
+	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtIns.Exec(accountHolderDetails.IdentificationNumber, accountDetails.AccountNumber, accountDetails.BankNumber, sqlTime)
 	if err != nil {
 		return errors.New("accounts.doCreateAccount: " + err.Error())
 	}
@@ -102,44 +128,76 @@ func doDeleteAccount(accountDetails *AccountDetails) (err error) {
 	return
 }
 
-func doCreateAccountMeta(sqlTime int32, accountHolderDetails *AccountHolderDetails, accountDetails *AccountDetails) (err error) {
+func doCreateAccountUser(sqlTime int32, accountHolderDetails *AccountHolderDetails, accountDetails *AccountDetails) (err error) {
 	// Create account meta
-	insertStatement := "INSERT INTO accounts_users (`accountNumber`, `bankNumber`, `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderDateOfBirth`, `accountHolderIdentificationNumber`, `accountHolderContactNumber1`, `accountHolderContactNumber2`, `accountHolderEmailAddress`, `accountHolderAddressLine1`, `accountHolderAddressLine2`, `accountHolderAddressLine3`, `accountHolderPostalCode`, `timestamp`) "
+	insertStatement := "INSERT INTO accounts_users (`accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderDateOfBirth`, `accountHolderIdentificationNumber`, `accountHolderContactNumber1`, `accountHolderContactNumber2`, `accountHolderEmailAddress`, `accountHolderAddressLine1`, `accountHolderAddressLine2`, `accountHolderAddressLine3`, `accountHolderPostalCode`, `timestamp`) "
 	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	stmtIns, err := Config.Db.Prepare(insertStatement)
 	if err != nil {
-		return errors.New("accounts.doCreateAccountMeta: " + err.Error())
+		return errors.New("accounts.doCreateAccountUser: " + err.Error())
 	}
 	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
 
-	accountHolderDetails.AccountNumber = accountDetails.AccountNumber
-
-	_, err = stmtIns.Exec(accountHolderDetails.AccountNumber, accountHolderDetails.BankNumber, accountHolderDetails.GivenName, accountHolderDetails.FamilyName, accountHolderDetails.DateOfBirth, accountHolderDetails.IdentificationNumber, accountHolderDetails.ContactNumber1, accountHolderDetails.ContactNumber2, accountHolderDetails.EmailAddress, accountHolderDetails.AddressLine1, accountHolderDetails.AddressLine2, accountHolderDetails.AddressLine3,
+	_, err = stmtIns.Exec(accountHolderDetails.GivenName, accountHolderDetails.FamilyName, accountHolderDetails.DateOfBirth, accountHolderDetails.IdentificationNumber, accountHolderDetails.ContactNumber1, accountHolderDetails.ContactNumber2, accountHolderDetails.EmailAddress, accountHolderDetails.AddressLine1, accountHolderDetails.AddressLine2, accountHolderDetails.AddressLine3,
 		accountHolderDetails.PostalCode, sqlTime)
 
 	if err != nil {
-		return errors.New("accounts.doCreateAccountMeta: " + err.Error())
+		return errors.New("accounts.doCreateAccountUser: " + err.Error())
 	}
 
 	return
 }
 
-func doDeleteAccountMeta(accountHolderDetails *AccountHolderDetails, accountDetails *AccountDetails) (err error) {
+func doCreateAccountUserAccount(sqlTime int32, accountHolderDetails *AccountHolderDetails, accountDetails *AccountDetails) (err error) {
+	insertStatement := "INSERT INTO accounts_users_accounts (`accountHolderIdentificationNumber`, `accountNumber`, `bankNumber`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?)"
+	stmtIns, err := Config.Db.Prepare(insertStatement)
+	if err != nil {
+		return errors.New("accounts.doCreateAccountUserAccount: " + err.Error())
+	}
+	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtIns.Exec(accountHolderDetails.IdentificationNumber, accountDetails.AccountNumber, accountDetails.BankNumber, sqlTime)
+
+	if err != nil {
+		return errors.New("accounts.doCreateAccountUserAccount: " + err.Error())
+	}
+
+	return
+}
+
+func doDeleteAccountUser(accountHolderDetails *AccountHolderDetails) (err error) {
 	// Create account meta
-	deleteStatement := "DELETE FROM accounts_users WHERE `accountNumber` = ? AND `bankNumber` = ? AND `accountHolderGivenName` = ? AND `accountHolderFamilyName` = ? AND `accountHolderDateOfBirth` = ? AND `accountHolderIdentificationNumber` = ? AND `accountHolderContactNumber1` = ? AND `accountHolderContactNumber2` = ? AND `accountHolderEmailAddress` = ? AND `accountHolderAddressLine1` = ? AND `accountHolderAddressLine2` = ? AND `accountHolderAddressLine3` = ? AND `accountHolderPostalCode` = ? "
+	deleteStatement := "DELETE FROM accounts_users WHERE `accountHolderGivenName` = ? AND `accountHolderFamilyName` = ? AND `accountHolderDateOfBirth` = ? AND `accountHolderIdentificationNumber` = ? AND `accountHolderContactNumber1` = ? AND `accountHolderContactNumber2` = ? AND `accountHolderEmailAddress` = ? AND `accountHolderAddressLine1` = ? AND `accountHolderAddressLine2` = ? AND `accountHolderAddressLine3` = ? AND `accountHolderPostalCode` = ? "
 	stmtDel, err := Config.Db.Prepare(deleteStatement)
 	if err != nil {
 		return errors.New("accounts.doDeleteAccountMeta: " + err.Error())
 	}
 	defer stmtDel.Close() // Close the statement when we leave main() / the program terminates
 
-	accountHolderDetails.AccountNumber = accountDetails.AccountNumber
-
-	_, err = stmtDel.Exec(accountHolderDetails.AccountNumber, accountHolderDetails.BankNumber, accountHolderDetails.GivenName, accountHolderDetails.FamilyName, accountHolderDetails.DateOfBirth, accountHolderDetails.IdentificationNumber, accountHolderDetails.ContactNumber1, accountHolderDetails.ContactNumber2, accountHolderDetails.EmailAddress, accountHolderDetails.AddressLine1, accountHolderDetails.AddressLine2, accountHolderDetails.AddressLine3,
+	_, err = stmtDel.Exec(accountHolderDetails.GivenName, accountHolderDetails.FamilyName, accountHolderDetails.DateOfBirth, accountHolderDetails.IdentificationNumber, accountHolderDetails.ContactNumber1, accountHolderDetails.ContactNumber2, accountHolderDetails.EmailAddress, accountHolderDetails.AddressLine1, accountHolderDetails.AddressLine2, accountHolderDetails.AddressLine3,
 		accountHolderDetails.PostalCode)
 
 	if err != nil {
+		return errors.New("accounts.doDeleteAccountUser: " + err.Error())
+	}
+
+	return
+}
+
+func doDeleteAccountUserAccounts(accountHolderDetails *AccountHolderDetails) (err error) {
+	// Create account meta
+	deleteStatement := "DELETE FROM accounts_users_accounts WHERE `accountHolderIdentificationNumber` = ?"
+	stmtDel, err := Config.Db.Prepare(deleteStatement)
+	if err != nil {
 		return errors.New("accounts.doDeleteAccountMeta: " + err.Error())
+	}
+	defer stmtDel.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtDel.Exec(accountHolderDetails.IdentificationNumber)
+
+	if err != nil {
+		return errors.New("accounts.doDeleteAccountUserAccount: " + err.Error())
 	}
 
 	return
@@ -173,16 +231,16 @@ func getAccountDetails(id string) (accountDetails AccountDetails, err error) {
 	return
 }
 
-func getAccountMeta(id string) (accountDetails AccountHolderDetails, err error) {
-	rows, err := Config.Db.Query("SELECT `accountNumber`, `bankNumber`, `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderDateOfBirth`, `accountHolderIdentificationNumber`, `accountHolderContactNumber1`, `accountHolderContactNumber2`, `accountHolderEmailAddress`, `accountHolderAddressLine1`, `accountHolderAddressLine2`, `accountHolderAddressLine3`, `accountHolderPostalCode` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` = ?", id)
+func getAccountUser(id string) (accountDetails AccountHolderDetails, err error) {
+	rows, err := Config.Db.Query("SELECT `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderDateOfBirth`, `accountHolderIdentificationNumber`, `accountHolderContactNumber1`, `accountHolderContactNumber2`, `accountHolderEmailAddress`, `accountHolderAddressLine1`, `accountHolderAddressLine2`, `accountHolderAddressLine3`, `accountHolderPostalCode` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` = ?", id)
 	if err != nil {
-		return AccountHolderDetails{}, errors.New("accounts.getAccountMeta: " + err.Error())
+		return AccountHolderDetails{}, errors.New("accounts.getAccountUser: " + err.Error())
 	}
 	defer rows.Close()
 
 	count := 0
 	for rows.Next() {
-		if err := rows.Scan(&accountDetails.AccountNumber, &accountDetails.BankNumber, &accountDetails.GivenName, &accountDetails.FamilyName, &accountDetails.DateOfBirth, &accountDetails.IdentificationNumber, &accountDetails.ContactNumber1, &accountDetails.ContactNumber2, &accountDetails.EmailAddress, &accountDetails.AddressLine1, &accountDetails.AddressLine2,
+		if err := rows.Scan(&accountDetails.GivenName, &accountDetails.FamilyName, &accountDetails.DateOfBirth, &accountDetails.IdentificationNumber, &accountDetails.ContactNumber1, &accountDetails.ContactNumber2, &accountDetails.EmailAddress, &accountDetails.AddressLine1, &accountDetails.AddressLine2,
 			&accountDetails.AddressLine3, &accountDetails.PostalCode); err != nil {
 			//@TODO Throw error
 			break
@@ -191,12 +249,7 @@ func getAccountMeta(id string) (accountDetails AccountHolderDetails, err error) 
 	}
 
 	if count == 0 {
-		return AccountHolderDetails{}, errors.New("accounts.getAccountMeta: Account not found")
-	}
-
-	if count > 1 {
-		//@TODO: Allow user to have multiple accounts
-		return AccountHolderDetails{}, errors.New("accounts.getAccountMeta: More than one account found")
+		return AccountHolderDetails{}, errors.New("accounts.getAccountUser: Account not found")
 	}
 
 	return
@@ -244,24 +297,26 @@ func getSingleAccountDetail(accountNumber string) (account AccountDetails, err e
 	return
 }
 
-func getSingleAccountNumberByID(userID string) (accountID string, err error) {
-	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` = ?", userID)
+func getAllAccountNumbersByID(userID string) (accountIDs []string, err error) {
+	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_users_accounts` WHERE `accountHolderIdentificationNumber` = ?", userID)
 	if err != nil {
-		return "", errors.New("accounts.getSingleAccountNumberByID: " + err.Error())
+		return nil, errors.New("accounts.getAllAccountNumbersByID: " + err.Error())
 	}
 	defer rows.Close()
 
 	count := 0
-	// @TODO Right now this will return the latest account only, if there are two accounts
+	// Return an array
 	for rows.Next() {
+		var accountID string
 		if err := rows.Scan(&accountID); err != nil {
 			break
 		}
 		count++
+		accountIDs = append(accountIDs, accountID)
 	}
 
 	if count == 0 {
-		return "", errors.New("accounts.getSingleAccountNumberByID: Account not found")
+		return nil, errors.New("accounts.getAllAccountNumbersByID: Account not found")
 	}
 
 	return
@@ -337,7 +392,7 @@ func doDeleteAccountPushToken(accountNumber string, pushToken string, platform s
 }
 
 func getAccountFromSearchData(searchString string) (allAccountDetails []AccountHolderDetails, err error) {
-	rows, err := Config.Db.Query("SELECT `accountNumber`, `bankNumber`, `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderEmailAddress` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` = ? OR `accountHolderGivenName` = ? OR `accountHolderFamilyName` = ? OR  `accountHolderEmailAddress` = ? LIMIT 10", searchString, searchString, searchString, searchString)
+	rows, err := Config.Db.Query("SELECT `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderEmailAddress` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` = ? OR `accountHolderGivenName` = ? OR `accountHolderFamilyName` = ? OR  `accountHolderEmailAddress` = ? LIMIT 10", searchString, searchString, searchString, searchString)
 	if err != nil {
 		return []AccountHolderDetails{}, errors.New("accounts.getAccountMeta: " + err.Error())
 	}
@@ -347,7 +402,7 @@ func getAccountFromSearchData(searchString string) (allAccountDetails []AccountH
 	count := 0
 	for rows.Next() {
 		accountDetails := AccountHolderDetails{}
-		if err := rows.Scan(&accountDetails.AccountNumber, &accountDetails.BankNumber, &accountDetails.GivenName, &accountDetails.FamilyName, &accountDetails.EmailAddress); err != nil {
+		if err := rows.Scan(&accountDetails.GivenName, &accountDetails.FamilyName, &accountDetails.EmailAddress); err != nil {
 			//@TODO Throw error
 			break
 		}
@@ -358,20 +413,36 @@ func getAccountFromSearchData(searchString string) (allAccountDetails []AccountH
 	return
 }
 
-func getAccountByHolderDetails(ID string, givenName string, familyName string, email string) (accountID string, err error) {
-	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` = ? AND `accountHolderGivenName` = ? AND `accountHolderFamilyName` = ? AND `accountHolderEmailAddress` = ?", ID, givenName, familyName, email)
+func getAccountByHolderDetails(ID string, givenName string, familyName string, email string) (accountIDs []string, err error) {
+	// First we make sure that the ID number matches up to all the other information
+	rows, err := Config.Db.Query("SELECT * FROM `accounts_users` WHERE `accountHolderIdentificationNumber` = ? AND `accountHolderGivenName` = ? AND `accountHolderFamilyName` = ? AND `accountHolderEmailAddress` = ?", ID, givenName, familyName, email)
 	if err != nil {
-		return "", errors.New("accounts.getAccountByHolderDetails: " + err.Error())
+		return nil, errors.New("accounts.getAccountByHolderDetails: " + err.Error())
 	}
 	defer rows.Close()
 
 	count := 0
 	for rows.Next() {
-		if err := rows.Scan(&accountID); err != nil {
-			//@TODO Throw error
-			break
-		}
 		count++
+	}
+
+	if count > 0 {
+		rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_users_accounts` WHERE `accountHolderIdentificationNumber` = ?", ID)
+		if err != nil {
+			return nil, errors.New("accounts.getAccountByHolderDetails: " + err.Error())
+		}
+		defer rows.Close()
+
+		count := 0
+		for rows.Next() {
+			var accountID string
+			if err := rows.Scan(&accountID); err != nil {
+				//@TODO Throw error
+				break
+			}
+			accountIDs = append(accountIDs, accountID)
+			count++
+		}
 	}
 
 	return

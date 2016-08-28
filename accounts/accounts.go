@@ -44,7 +44,7 @@ Accounts (acmt) transactions are as follows:
 24 - IdentificationVerificationReportV02
 
 ### Custom functionality
-1000 - ListAllAccounts (@FIXME Used for now by anyone, close down later)
+1000 - ListAllAccounts (Deprecated)
 1001 - ListSingleAccount
 1002 - CheckAccountByID
 1003 - AddAccountPushToken
@@ -73,8 +73,6 @@ type AccountHolder struct {
 }
 
 type AccountHolderDetails struct {
-	AccountNumber        string
-	BankNumber           string
 	GivenName            string
 	FamilyName           string
 	DateOfBirth          string
@@ -86,6 +84,12 @@ type AccountHolderDetails struct {
 	AddressLine2         string
 	AddressLine3         string
 	PostalCode           string
+}
+
+type AccountHolderAccounts struct {
+	IdentificationNumber string
+	AccountNumber        string
+	BankNumber           string
 }
 
 type AccountDetails struct {
@@ -127,12 +131,6 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 			return "", errors.New("accounts.ProcessAccount: " + err.Error())
 		}
 		break
-	case 1000:
-		result, err = fetchAccounts(data)
-		if err != nil {
-			return "", errors.New("accounts.ProcessAccount: " + err.Error())
-		}
-		break
 	case 1001:
 		result, err = fetchSingleAccount(data)
 		if err != nil {
@@ -144,7 +142,7 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 			err = errors.New("accounts.ProcessAccount: Not all fields present")
 			return
 		}
-		result, err = fetchSingleAccountByID(data)
+		result, err = fetchAllAccountsByID(data)
 		if err != nil {
 			return "", errors.New("accounts.ProcessAccount: " + err.Error())
 		}
@@ -198,8 +196,6 @@ func openAccount(data []string) (result interface{}, err error) {
 	// Validate string against required info/length
 	if len(data) < 14 {
 		err = errors.New("accounts.openAccount: Not all fields present")
-		//@TODO Add to documentation rather than returning here
-		//result = "ERROR: acmt transactions must be as follows:acmt~AcmtType~AccountHolderGivenName~AccountHolderFamilyName~AccountHolderDateOfBirth~AccountHolderIdentificationNumber~AccountHolderContactNumber1~AccountHolderContactNumber2~AccountHolderEmailAddress~AccountHolderAddressLine1~AccountHolderAddressLine2~AccountHolderAddressLine3~AccountHolderPostalCode"
 		return
 	}
 
@@ -233,9 +229,9 @@ func closeAccount(data []string) (result interface{}, err error) {
 	}
 
 	// Check if account already exists, check on ID number
-	accountHolder, _ := getAccountMeta(data[6])
-	if accountHolder.AccountNumber == "" {
-		return "", errors.New("accounts.closeAccount: Account does not exist. " + accountHolder.AccountNumber)
+	accountHolder, _ := getAccountUser(data[6])
+	if accountHolder == (AccountHolderDetails{}) {
+		return "", errors.New("accounts.closeAccount: Account does not exist.")
 	}
 
 	// @FIXME: Remove new line from data
@@ -276,7 +272,7 @@ func setAccountDetails(data []string) (accountDetails AccountDetails, err error)
 }
 
 func setAccountHolderDetails(data []string) (accountHolderDetails AccountHolderDetails, err error) {
-	if len(data) < 14 {
+	if len(data) < 12 {
 		return AccountHolderDetails{}, errors.New("accounts.setAccountHolderDetails: Not all field values present")
 	}
 	//@TODO: Test date parsing in format ddmmyyyy
@@ -288,7 +284,6 @@ func setAccountHolderDetails(data []string) (accountHolderDetails AccountHolderD
 	}
 
 	// @TODO Integrity checks
-	accountHolderDetails.BankNumber = BANK_NUMBER
 	accountHolderDetails.GivenName = data[3]
 	accountHolderDetails.FamilyName = data[4]
 	accountHolderDetails.DateOfBirth = data[5]
@@ -300,17 +295,6 @@ func setAccountHolderDetails(data []string) (accountHolderDetails AccountHolderD
 	accountHolderDetails.AddressLine2 = data[11]
 	accountHolderDetails.AddressLine3 = data[12]
 	accountHolderDetails.PostalCode = data[13]
-
-	return
-}
-
-// @TODO Remove this after testing, security risk
-func fetchAccounts(data []string) (accounts interface{}, err error) {
-	// Fetch all accounts. This fetches non-sensitive information (no balances)
-	accounts, err = getAllAccountDetails()
-	if err != nil {
-		return "", errors.New("accounts.fetchAccounts: " + err.Error())
-	}
 
 	return
 }
@@ -329,16 +313,16 @@ func fetchSingleAccount(data []string) (account interface{}, err error) {
 	return
 }
 
-func fetchSingleAccountByID(data []string) (userAccountNumber interface{}, err error) {
+func fetchAllAccountsByID(data []string) (userAccountNumber []string, err error) {
 	// Format: token~acmt~1002~USERID
 	userID := data[3]
 	if userID == "" {
-		return "", errors.New("accounts.fetchSingleAccountByID: User ID not present")
+		return nil, errors.New("accounts.fetchSingleAccountByID: User ID not present")
 	}
 
-	userAccountNumber, err = getSingleAccountNumberByID(userID)
+	userAccountNumber, err = getAllAccountNumbersByID(userID)
 	if err != nil {
-		return "", errors.New("accounts.fetchSingleAccountByID: " + err.Error())
+		return nil, errors.New("accounts.fetchSingleAccountByID: " + err.Error())
 	}
 
 	return
@@ -419,19 +403,19 @@ func searchAccount(data []string) (accounts interface{}, err error) {
 	return
 }
 
-func retrieveAccount(data []string) (accountID string, err error) {
+func retrieveAccount(data []string) (accountIDs []string, err error) {
 	id := data[3]
 	givenName := data[4]
 	familyName := data[5]
 	email := data[6]
 
 	if id == "" || givenName == "" || familyName == "" || email == "" {
-		return "", errors.New("accounts.retrieveAccount: Not all fields present")
+		return nil, errors.New("accounts.retrieveAccount: Not all fields present")
 	}
 
-	accountID, err = getAccountByHolderDetails(id, givenName, familyName, email)
+	accountIDs, err = getAccountByHolderDetails(id, givenName, familyName, email)
 	if err != nil {
-		return "", errors.New("accounts.retrieveAccount: Could not retrieve account. " + err.Error())
+		return nil, errors.New("accounts.retrieveAccount: Could not retrieve account. " + err.Error())
 	}
 
 	return
