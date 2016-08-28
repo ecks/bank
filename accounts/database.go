@@ -278,19 +278,27 @@ func getAllAccountDetails() (allAccounts []AccountDetails, err error) {
 	return
 }
 
-func getSingleAccountDetail(accountNumber string) (account AccountDetails, err error) {
-	rows, err := Config.Db.Query("SELECT `accountNumber`, `bankNumber`, `accountHolderName`, `accountBalance`, `overdraft`, `availableBalance` FROM `accounts` WHERE `accountNumber` = ?", accountNumber)
+func getUserAccountsDetail(userID string) (accounts []AccountDetails, err error) {
+	rows, err := Config.Db.Query(
+		"SELECT a.accountNumber, a.bankNumber, a.accountHolderName, a.accountBalance, a.overdraft, a.availableBalance "+
+			"FROM accounts a "+
+			"LEFT JOIN accounts_users_accounts au "+
+			"ON au.accountNumber = a.accountNumber "+
+			"AND au.bankNumber = a.bankNumber "+
+			"WHERE au.accountHolderIdentificationNumber = ?", userID)
 	if err != nil {
-		return AccountDetails{}, errors.New("accounts.getSingleAccountDetail: " + err.Error())
+		return nil, errors.New("accounts.getUserAccountsDetail: " + err.Error())
 	}
 	defer rows.Close()
 
 	count := 0
 	for rows.Next() {
+		var account AccountDetails
 		if err := rows.Scan(&account.AccountNumber, &account.BankNumber, &account.AccountHolderName, &account.AccountBalance, &account.Overdraft, &account.AvailableBalance); err != nil {
 			break
 		}
 
+		accounts = append(accounts, account)
 		count++
 	}
 

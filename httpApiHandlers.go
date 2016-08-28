@@ -60,10 +60,10 @@ func AuthLogin(w http.ResponseWriter, r *http.Request) {
 
 // Create auth account
 func AuthCreate(w http.ResponseWriter, r *http.Request) {
-	user := r.FormValue("User")
+	userID := r.FormValue("UserIdentificationNumber")
 	password := r.FormValue("Password")
 
-	response, err := appauth.ProcessAppAuth([]string{"0", "appauth", "3", user, password})
+	response, err := appauth.ProcessAppAuth([]string{"0", "appauth", "3", userID, password})
 	Response(response, err, w, r)
 	return
 }

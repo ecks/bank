@@ -132,7 +132,7 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 		}
 		break
 	case 1001:
-		result, err = fetchSingleAccount(data)
+		result, err = fetchUserAccounts(data)
 		if err != nil {
 			return "", errors.New("accounts.ProcessAccount: " + err.Error())
 		}
@@ -299,13 +299,13 @@ func setAccountHolderDetails(data []string) (accountHolderDetails AccountHolderD
 	return
 }
 
-func fetchSingleAccount(data []string) (account interface{}, err error) {
+func fetchUserAccounts(data []string) (account interface{}, err error) {
 	// Fetch user account. Must be user logged in
 	tokenUser, err := appauth.GetUserFromToken(data[0])
 	if err != nil {
 		return "", errors.New("accounts.fetchSingleAccount: " + err.Error())
 	}
-	account, err = getSingleAccountDetail(tokenUser)
+	account, err = getUserAccountsDetail(tokenUser)
 	if err != nil {
 		return "", errors.New("accounts.fetchSingleAccount: " + err.Error())
 	}

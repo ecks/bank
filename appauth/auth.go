@@ -3,6 +3,7 @@ package appauth
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -79,21 +80,41 @@ func ProcessAppAuth(data []string) (result string, err error) {
 func CreateUserPassword(user string, clearTextPassword string) (result string, err error) {
 	//TEST 0~appauth~3~181ac0ae-45cb-461d-b740-15ce33e4612f~testPassword
 
-	// Check for existing account
-	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_user_auth` WHERE `accountHolderIdentificationNumber` = ?", user)
+	// @TODO Split these checks up into separate functions
+	// Check if ID number is valid
+	rows, err := Config.Db.Query("SELECT * FROM `accounts_users_accounts` WHERE `accountHolderIdentificationNumber` = ?", user)
 	if err != nil {
 		return "", errors.New("appauth.CreateUserPassword: Error with select query. " + err.Error())
 	}
 	defer rows.Close()
 
-	// @TODO Must be easy way to get row count returned
 	count := 0
 	for rows.Next() {
 		count++
 	}
 
+	if count == 0 {
+		return "", errors.New("appauth.CreateUserPassword: Account ID number not linked to a user")
+	}
+
+	// Check for existing account
+	rows, err = Config.Db.Query("SELECT `authUser` FROM `accounts_user_auth` WHERE `accountHolderIdentificationNumber` = ?", user)
+	if err != nil {
+		return "", errors.New("appauth.CreateUserPassword: Error with select query. " + err.Error())
+	}
+	defer rows.Close()
+
+	var authUser string
+	count = 0
+	for rows.Next() {
+		if err := rows.Scan(&authUser); err != nil {
+			return "", errors.New("appauth.CreateUserPassword: Could not retreive authUser")
+		}
+		count++
+	}
+
 	if count > 0 {
-		return "", errors.New("appauth.CreateUserPassword: Account already exists")
+		return "", errors.New("appauth.CreateUserPassword: Account already exists: " + authUser)
 	}
 
 	// Check password length
@@ -117,9 +138,12 @@ func CreateUserPassword(user string, clearTextPassword string) (result string, e
 	}
 	userHashedPassword := hex.EncodeToString(hashOutput)
 
+	// Generate authUser number
+	authUser = uuid.NewV4().String()
+
 	// Prepare statement for inserting data
-	insertStatement := "INSERT INTO accounts_user_auth (`accountHolderIdentificationNumber`, `password`, `salt`, `timestamp`) "
-	insertStatement += "VALUES(?, ?, ?, ?)"
+	insertStatement := "INSERT INTO accounts_user_auth (`accountHolderIdentificationNumber`, `authUser`, `password`, `salt`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?, ?)"
 	stmtIns, err := Config.Db.Prepare(insertStatement)
 	if err != nil {
 		return "", errors.New("appauth.CreateUserPassword: Error with insert. " + err.Error())
@@ -130,13 +154,13 @@ func CreateUserPassword(user string, clearTextPassword string) (result string, e
 	t := time.Now()
 	sqlTime := int32(t.Unix())
 
-	_, err = stmtIns.Exec(user, userHashedPassword, userSalt, sqlTime)
+	_, err = stmtIns.Exec(user, authUser, userHashedPassword, userSalt, sqlTime)
 
 	if err != nil {
 		return "", errors.New("appauth.CreateUserPassword: Could not save account. " + err.Error())
 	}
 
-	result = "Successfully created account"
+	result = authUser
 	return
 }
 
@@ -202,8 +226,8 @@ func RemoveUserPassword(user string, clearTextPassword string) (result string, e
 	return
 }
 
-func CreateToken(user string, password string) (token string, err error) {
-	rows, err := Config.Db.Query("SELECT `password`, `salt` FROM `accounts_user_auth` WHERE `accountHolderIdentificationNumber` = ?", user)
+func CreateToken(authUser string, password string) (token string, err error) {
+	rows, err := Config.Db.Query("SELECT `password`, `salt`, `accountHolderIdentificationNumber` FROM `accounts_user_auth` WHERE `authUser` = ?", authUser)
 	if err != nil {
 		return "", errors.New("appauth.CreateToken: Error with select query. " + err.Error())
 	}
@@ -212,8 +236,9 @@ func CreateToken(user string, password string) (token string, err error) {
 	count := 0
 	hashedPassword := ""
 	userSalt := ""
+	userID := ""
 	for rows.Next() {
-		if err := rows.Scan(&hashedPassword, &userSalt); err != nil {
+		if err := rows.Scan(&hashedPassword, &userSalt, &userID); err != nil {
 			return "", errors.New("appauth.CreateToken: Could not retreive account details")
 		}
 		count++
@@ -236,7 +261,7 @@ func CreateToken(user string, password string) (token string, err error) {
 	token = newUuid.String()
 
 	// @TODO Remove all tokens for this user
-	err = Config.Redis.Set(token, user, TOKEN_TTL).Err()
+	err = Config.Redis.Set(token, userID, TOKEN_TTL).Err()
 	if err != nil {
 		return "", errors.New("appauth.CreateToken: Could not set token. " + err.Error())
 	}
@@ -262,6 +287,7 @@ func RemoveToken(token string) (result string, err error) {
 func CheckToken(token string) (err error) {
 	//TEST 0~appauth~480e67e3-e2c9-48ee-966c-8d251474b669
 	user, err := Config.Redis.Get(token).Result()
+	fmt.Printf("user from redis: %v\n", user)
 
 	if err == redis.Nil {
 		return errors.New("appauth.CheckToken: Token not found. " + err.Error())
