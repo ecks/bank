@@ -93,7 +93,7 @@ func doCreateAccount(sqlTime int32, accountDetails *AccountDetails, accountHolde
 	}
 
 	// We insert a record into account user accounts
-	insertStatement = "INSERT INTO accounts_user_accounts (`accountHolderIdentificationNumber`, `accountNumbe`, `bankNumber`, `timestamp`) "
+	insertStatement = "INSERT INTO accounts_users_accounts (`accountHolderIdentificationNumber`, `accountNumber`, `bankNumber`, `timestamp`) "
 	insertStatement += "VALUES(?, ?, ?, ?)"
 	stmtIns, err = Config.Db.Prepare(insertStatement)
 	if err != nil {
@@ -131,7 +131,7 @@ func doDeleteAccount(accountDetails *AccountDetails) (err error) {
 func doCreateAccountUser(sqlTime int32, accountHolderDetails *AccountHolderDetails, accountDetails *AccountDetails) (err error) {
 	// Create account meta
 	insertStatement := "INSERT INTO accounts_users (`accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderDateOfBirth`, `accountHolderIdentificationNumber`, `accountHolderContactNumber1`, `accountHolderContactNumber2`, `accountHolderEmailAddress`, `accountHolderAddressLine1`, `accountHolderAddressLine2`, `accountHolderAddressLine3`, `accountHolderPostalCode`, `timestamp`) "
-	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	insertStatement += "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	stmtIns, err := Config.Db.Prepare(insertStatement)
 	if err != nil {
 		return errors.New("accounts.doCreateAccountUser: " + err.Error())
