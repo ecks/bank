@@ -91,7 +91,7 @@ func ProcessPAIN(data []string) (result interface{}, err error) {
 		break
 	case 1001:
 		//token~pain~type~page~perpage
-		if len(data) < 5 {
+		if len(data) < 6 {
 			return "", errors.New("payments.ProcessPAIN: Not all data is present.")
 		}
 		result, err = listTransactions(data)
@@ -127,7 +127,6 @@ func painCreditTransferInitiation(painType int64, data []string) (result string,
 	if err != nil {
 		return "", errors.New("payments.painCreditTransferInitiation: " + err.Error())
 	}
-	//
 	err = accounts.CheckUserAccountValidFromToken(tokenUser, sender.AccountNumber)
 	if err != nil {
 		return "", errors.New("payments.painCreditTransferInitiation: Sender not valid")
@@ -222,7 +221,8 @@ func customerDepositInitiation(painType int64, data []string) (result string, er
 	if err != nil {
 		return "", errors.New("payments.customerDepositInitiation: " + err.Error())
 	}
-	if tokenUser != receiver.AccountNumber {
+	err = accounts.CheckUserAccountValidFromToken(tokenUser, receiver.AccountNumber)
+	if err != nil {
 		return "", errors.New("payments.customerDepositInitiation: Sender not valid")
 	}
 
@@ -253,16 +253,21 @@ func customerDepositInitiation(painType int64, data []string) (result string, er
 }
 
 func listTransactions(data []string) (result []PAINTrans, err error) {
-	tokenUserAccountNumber, err := appauth.GetUserFromToken(data[0])
+	tokenUser, err := appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
+	}
+	accountNumber := data[3]
+	err = accounts.CheckUserAccountValidFromToken(tokenUser, accountNumber)
 	if err != nil {
 		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
 	}
 
-	page, err := strconv.Atoi(data[3])
+	page, err := strconv.Atoi(data[4])
 	if err != nil {
 		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
 	}
-	perPage, err := strconv.Atoi(data[4])
+	perPage, err := strconv.Atoi(data[5])
 	if err != nil {
 		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
 	}
@@ -272,13 +277,13 @@ func listTransactions(data []string) (result []PAINTrans, err error) {
 	}
 
 	// Check if timestamp present
-	if data[5] != "" {
-		timestamp, err := strconv.Atoi(data[5])
+	if data[6] != "" {
+		timestamp, err := strconv.Atoi(data[6])
 		if err != nil {
 			return []PAINTrans{}, errors.New("payments.ListTransactions: Could not convert timestamp to int. " + err.Error())
 		}
 
-		result, err = getTransactionListAfterTimestamp(tokenUserAccountNumber, (page * perPage), perPage, timestamp)
+		result, err = getTransactionListAfterTimestamp(accountNumber, (page * perPage), perPage, timestamp)
 		if err != nil {
 			return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
 		}
@@ -286,7 +291,7 @@ func listTransactions(data []string) (result []PAINTrans, err error) {
 		return result, nil
 	}
 
-	result, err = getTransactionList(tokenUserAccountNumber, (page * perPage), perPage)
+	result, err = getTransactionList(accountNumber, (page * perPage), perPage)
 	if err != nil {
 		return []PAINTrans{}, errors.New("payments.ListTransactions: " + err.Error())
 	}
