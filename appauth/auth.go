@@ -80,7 +80,7 @@ func CreateUserPassword(user string, clearTextPassword string) (result string, e
 	//TEST 0~appauth~3~181ac0ae-45cb-461d-b740-15ce33e4612f~testPassword
 
 	// Check for existing account
-	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
+	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_user_auth` WHERE `accountHolderIdentificationNumber` = ?", user)
 	if err != nil {
 		return "", errors.New("appauth.CreateUserPassword: Error with select query. " + err.Error())
 	}
@@ -118,7 +118,7 @@ func CreateUserPassword(user string, clearTextPassword string) (result string, e
 	userHashedPassword := hex.EncodeToString(hashOutput)
 
 	// Prepare statement for inserting data
-	insertStatement := "INSERT INTO accounts_auth (`accountNumber`, `password`, `salt`, `timestamp`) "
+	insertStatement := "INSERT INTO accounts_user_auth (`accountHolderIdentificationNumber`, `password`, `salt`, `timestamp`) "
 	insertStatement += "VALUES(?, ?, ?, ?)"
 	stmtIns, err := Config.Db.Prepare(insertStatement)
 	if err != nil {
@@ -142,7 +142,7 @@ func CreateUserPassword(user string, clearTextPassword string) (result string, e
 
 func RemoveUserPassword(user string, clearTextPassword string) (result string, err error) {
 	// Check for existing account
-	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
+	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_user_auth` WHERE `accountHolderIdentificationNumber` = ?", user)
 	if err != nil {
 		return "", errors.New("appauth.RemoveUserPassword: Error with select query. " + err.Error())
 	}
@@ -176,7 +176,7 @@ func RemoveUserPassword(user string, clearTextPassword string) (result string, e
 	}
 
 	// Prepare statement for inserting data
-	delStatement := "DELETE FROM accounts_auth WHERE `accountNumber` = ? AND `password` = ? "
+	delStatement := "DELETE FROM accounts_user_auth WHERE `accountHolderIdentificationNumber` = ? AND `password` = ? "
 	stmtDel, err := Config.Db.Prepare(delStatement)
 	if err != nil {
 		return "", errors.New("appauth.RemoveUserPassword: Error with delete. " + err.Error())
@@ -203,7 +203,7 @@ func RemoveUserPassword(user string, clearTextPassword string) (result string, e
 }
 
 func CreateToken(user string, password string) (token string, err error) {
-	rows, err := Config.Db.Query("SELECT `password`, `salt` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
+	rows, err := Config.Db.Query("SELECT `password`, `salt` FROM `accounts_user_auth` WHERE `accountHolderIdentificationNumber` = ?", user)
 	if err != nil {
 		return "", errors.New("appauth.CreateToken: Error with select query. " + err.Error())
 	}
@@ -305,7 +305,7 @@ func RandStringBytes(n int) string {
 }
 
 func getUserPasswordSaltFromUID(user string) (hashedPassword string, userSalt string, err error) {
-	rows, err := Config.Db.Query("SELECT `password`, `salt` FROM `accounts_auth` WHERE `accountNumber` = ?", user)
+	rows, err := Config.Db.Query("SELECT `password`, `salt` FROM `accounts_user_auth` WHERE `accountHolderIdentificationNumber` = ?", user)
 	if err != nil {
 		return "", "", errors.New("appauth.CreateToken: Error with select query. " + err.Error())
 	}
