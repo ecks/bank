@@ -302,6 +302,7 @@ func MerchantAccountCreate(w http.ResponseWriter, r *http.Request) {
 	merchantContactFax := r.FormValue("MerchantContactFax")
 	merchantContactEmail := r.FormValue("MerchantContactEmail")
 	merchantLogo := r.FormValue("MerchantLogo")
+	merchantAccountType := r.FormValue("AccountType")
 
 	req := []string{
 		token,
@@ -322,6 +323,7 @@ func MerchantAccountCreate(w http.ResponseWriter, r *http.Request) {
 		merchantContactFax,
 		merchantContactEmail,
 		merchantLogo,
+		merchantAccountType,
 	}
 
 	response, err := accounts.ProcessAccount(req)

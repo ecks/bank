@@ -483,6 +483,11 @@ func createMerchantAccount(merchantDetails *MerchantDetails, accountDetails *Acc
 		return errors.New("accounts.createMerchantAccount: " + err.Error())
 	}
 
+	err = doCreateAccountMerchantAccount(sqlTime, merchantDetails, accountHolderDetails, accountDetails)
+	if err != nil {
+		return errors.New("accounts.createMerchantAccount: " + err.Error())
+	}
+
 	return
 }
 
@@ -601,17 +606,26 @@ func getMerchantFromMerchantID(merchantID string) (merchantDetails MerchantDetai
 }
 
 func deleteMerchantAccount(merchantDetails *MerchantDetails, accountDetails *AccountDetails, accountHolderDetails *AccountHolderDetails) (err error) {
+	// Delete the account itself
 	err = doDeleteAccount(accountDetails)
 	if err != nil {
 		return errors.New("accounts.deleteMerchantAccount: " + err.Error())
 	}
 
+	// Delete the merchant user account
 	err = doDeleteMerchantAccount(merchantDetails)
 	if err != nil {
 		return errors.New("accounts.deleteMerchantAccount: " + err.Error())
 	}
 
+	// Remove the account from the accounts_users_accounts list
 	err = doDeleteSingleAccountUserAccounts(accountHolderDetails, accountDetails)
+	if err != nil {
+		return errors.New("accounts.deleteMerchantAccount: " + err.Error())
+	}
+
+	// Remove the account from the merchants_user_accounts list
+	err = doDeleteAccountMerchantAccounts(merchantDetails, accountHolderDetails)
 	if err != nil {
 		return errors.New("accounts.deleteMerchantAccount: " + err.Error())
 	}
@@ -650,6 +664,42 @@ func doDeleteSingleAccountUserAccounts(accountHolderDetails *AccountHolderDetail
 
 	if err != nil {
 		return errors.New("accounts.doDeleteSingleAccountUserAccounts: " + err.Error())
+	}
+
+	return
+}
+
+func doCreateAccountMerchantAccount(sqlTime int32, merchantDetails *MerchantDetails, accountHolderDetails *AccountHolderDetails, accountDetails *AccountDetails) (err error) {
+	insertStatement := "INSERT INTO merchant_users_accounts (`accountHolderIdentificationNumber`, `merchantID`, `accountNumber`, `bankNumber`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?, ?)"
+	stmtIns, err := Config.Db.Prepare(insertStatement)
+	if err != nil {
+		return errors.New("accounts.doCreateAccountMerchantAccount: " + err.Error())
+	}
+	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtIns.Exec(accountHolderDetails.IdentificationNumber, merchantDetails.ID, accountDetails.AccountNumber, accountDetails.BankNumber, sqlTime)
+
+	if err != nil {
+		return errors.New("accounts.doCreateAccountMerchantAccount: " + err.Error())
+	}
+
+	return
+}
+
+func doDeleteAccountMerchantAccounts(merchantDetails *MerchantDetails, accountHolderDetails *AccountHolderDetails) (err error) {
+	// Create account meta
+	deleteStatement := "DELETE FROM merchant_users_accounts WHERE `accountHolderIdentificationNumber` = ? AND `merchantID` = ?"
+	stmtDel, err := Config.Db.Prepare(deleteStatement)
+	if err != nil {
+		return errors.New("accounts.doDeleteAccountMerchantAccounts: " + err.Error())
+	}
+	defer stmtDel.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtDel.Exec(accountHolderDetails.IdentificationNumber, merchantDetails.ID)
+
+	if err != nil {
+		return errors.New("accounts.doDeleteAccountMerchantAccounts: " + err.Error())
 	}
 
 	return

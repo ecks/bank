@@ -214,7 +214,7 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 		}
 	// Merchant account create
 	case 1100:
-		if len(data) < 19 {
+		if len(data) < 20 {
 			err = errors.New("accounts.ProcessAccount: Not all fields present")
 			return
 		}
@@ -602,6 +602,11 @@ func merchantAccountUpdate(data []string) (result interface{}, err error) {
 }
 
 func merchantAccountDelete(data []string) (result interface{}, err error) {
+	// Currently this deletes an account entirely
+	// Deleting is needed but backups of all data should be done
+	// The account could be marked as deleted when called through the API
+	// @TODO: Find best solution here. One option: log all data in separate place
+	// (perhaps in a file) and remove the record
 	tokenUser, err := appauth.GetUserFromToken(data[0])
 	if err != nil {
 		return "", errors.New("accounts.merchantAccountUpdate: " + err.Error())
@@ -656,7 +661,7 @@ func merchantAccountSearch(data []string) (result interface{}, err error) {
 }
 
 func setMerchantDetails(data []string, identificationNumber string) (merchantDetails MerchantDetails, accountDetails AccountDetails, err error) {
-	if len(data) < 19 {
+	if len(data) < 20 {
 		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Not all field values present")
 	}
 
@@ -700,7 +705,19 @@ func setMerchantDetails(data []string, identificationNumber string) (merchantDet
 	accountDetails.Overdraft = decimal.NewFromFloat(OPENING_OVERDRAFT)
 	accountDetails.AvailableBalance = decimal.NewFromFloat(OPENING_BALANCE + OPENING_OVERDRAFT)
 
-	accountDetails.Type = "merchant"
+	accountType := data[19]
+	switch accountType {
+	case "":
+		accountType = "merchant" // Default to merchant account
+		break
+	case "merchant", "credit", "mortgage", "loan":
+		// Valid
+		break
+	default:
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Account type not valid for a merchant, must be one of merchant, credit, mortgage, loan")
+		break
+	}
+	accountDetails.Type = accountType
 
 	return
 }
