@@ -337,6 +337,7 @@ func MerchantAccountUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	merchantID := r.FormValue("MerchantID")
 	merchantName := r.FormValue("MerchantName")
 	merchantDescription := r.FormValue("MerchantDescription")
 	merchantContactGivenName := r.FormValue("MerchantContactGivenName")
@@ -373,6 +374,7 @@ func MerchantAccountUpdate(w http.ResponseWriter, r *http.Request) {
 		merchantContactEmail,
 		//merchantLogo,
 		"", // @FIXME We leave logo out for now, need to parse pictures nicely
+		merchantID,
 	}
 
 	response, err := accounts.ProcessAccount(req)

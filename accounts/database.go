@@ -487,5 +487,114 @@ func createMerchantAccount(merchantDetails *MerchantDetails, accountDetails *Acc
 }
 
 func doCreateMerchant(sqltime int32, merchantDetails *MerchantDetails) (err error) {
+	insertStatement := "INSERT INTO merchants (`merchantID`, `merchantName`, `merchantDescription`, `merchantContactGivenName`, `merchantContactFamilyName`, `merchantAddressLine1`, `merchantAddressLine2`, `merchantAddressLine3`, `merchantCountry`, `merchantPostalCode`, `merchantBusinessSector`, `merchantWebsite`, `merchantContactPhone`, `merchantContactFax`, `merchantContactEmail`, `merchantLogo`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?, ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?)"
+	stmtIns, err := Config.Db.Prepare(insertStatement)
+	if err != nil {
+		return errors.New("accounts.doCreateMerchant: " + err.Error())
+	}
+	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+
+	// Generate account number
+	merchantDetails.ID = uuid.NewV4().String()
+
+	_, err = stmtIns.Exec(
+		merchantDetails.ID,
+		merchantDetails.Name,
+		merchantDetails.Description,
+		merchantDetails.ContactGivenName,
+		merchantDetails.ContactFamilyName,
+		merchantDetails.AddressLine1,
+		merchantDetails.AddressLine2,
+		merchantDetails.AddressLine3,
+		merchantDetails.Country,
+		merchantDetails.PostalCode,
+		merchantDetails.BusinessSector,
+		merchantDetails.Website,
+		merchantDetails.ContactPhone,
+		merchantDetails.ContactFax,
+		merchantDetails.ContactEmail,
+		"", //merchantDetails.Logo,
+		sqltime,
+	)
+
+	if err != nil {
+		return errors.New("accounts.doCreateMerchant: " + err.Error())
+	}
+
+	return
+}
+
+func updateMerchant(merchantDetails *MerchantDetails) (err error) {
+	stmt := "UPDATE merchants SET  `merchantName` = ? AND `merchantDescription` = ? AND `merchantContactGivenName` = ? AND `merchantContactFamilyName` = ? AND `merchantAddressLine1` = ? AND `merchantAddressLine2` = ? AND `merchantAddressLine3` = ? AND `merchantCountry` = ? AND `merchantPostalCode` = ? AND  `merchantBusinessSector` = ? AND `merchantWebsite` = ? AND `merchantContactPhone` = ? AND `merchantContactFax` = ? AND `merchantContactEmail` = ? AND `merchantLogo` = ? AND `timestamp` = ? WHERE `merchantID` = ? "
+	stmt += "VALUES(?, ?, ?, ?, ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?)"
+	stmtRes, err := Config.Db.Prepare(stmt)
+	if err != nil {
+		return errors.New("accounts.updateMerchant: " + err.Error())
+	}
+	defer stmtRes.Close() // Close the statement when we leave main() / the program terminates
+
+	t := time.Now()
+	sqlTime := int32(t.Unix())
+
+	_, err = stmtRes.Exec(
+		merchantDetails.Name,
+		merchantDetails.Description,
+		merchantDetails.ContactGivenName,
+		merchantDetails.ContactFamilyName,
+		merchantDetails.AddressLine1,
+		merchantDetails.AddressLine2,
+		merchantDetails.AddressLine3,
+		merchantDetails.Country,
+		merchantDetails.PostalCode,
+		merchantDetails.BusinessSector,
+		merchantDetails.Website,
+		merchantDetails.ContactPhone,
+		merchantDetails.ContactFax,
+		merchantDetails.ContactEmail,
+		"", //merchantDetails.Logo,
+		sqlTime,
+		merchantDetails.ID,
+	)
+
+	if err != nil {
+		return errors.New("accounts.updateMerchant: " + err.Error())
+	}
+
+	return
+}
+
+func getMerchantFromMerchantID(merchantID string) (merchantDetails MerchantDetails, err error) {
+	rows, err := Config.Db.Query("SELECT `merchantID`, `merchantName`, `merchantDescription`, `merchantContactGivenName`, `merchantContactFamilyName`, `merchantAddressLine1`, `merchantAddressLine2`, `merchantAddressLine3`, `merchantCountry`, `merchantPostalCode`, `merchantBusinessSector`, `merchantWebsite`, `merchantContactPhone`, `merchantContactFax`, `merchantContactEmail`, `merchantLogo`, `timestamp` FROM `merchants` WHERE `merchantID` = ?", merchantID)
+	if err != nil {
+		return MerchantDetails{}, errors.New("accounts.getMerchantFromMerchantID: " + err.Error())
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := rows.Scan(
+			&merchantDetails.Name,
+			&merchantDetails.Description,
+			&merchantDetails.ContactGivenName,
+			&merchantDetails.ContactFamilyName,
+			&merchantDetails.AddressLine1,
+			&merchantDetails.AddressLine2,
+			&merchantDetails.AddressLine3,
+			&merchantDetails.Country,
+			&merchantDetails.PostalCode,
+			&merchantDetails.BusinessSector,
+			&merchantDetails.Website,
+			&merchantDetails.ContactPhone,
+			&merchantDetails.ContactFax,
+			&merchantDetails.ContactEmail,
+			&merchantDetails.Logo,
+			&merchantDetails.Timestamp,
+			&merchantDetails.ID,
+		); err != nil {
+			return MerchantDetails{}, errors.New("accounts.getMerchantFromMerchantID: " + err.Error())
+			break
+		}
+	}
+
 	return
 }
