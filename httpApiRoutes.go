@@ -108,6 +108,42 @@ var routes = Routes{
 		"/account/search",
 		AccountSearch,
 	},
+	// Merchant accounts
+	// Merchant create
+	Route{
+		"MerchantAccountCreate",
+		"POST",
+		"/account/merchant",
+		MerchantAccountCreate,
+	},
+	// Merchant update
+	Route{
+		"MerchantAccountUpdate",
+		"PUT",
+		"/account/merchant",
+		MerchantAccountUpdate,
+	},
+	// Merchant read
+	Route{
+		"MerchantAccountView",
+		"GET",
+		"/account/merchant/{merchantID}",
+		MerchantAccountView,
+	},
+	// Merchant delete
+	Route{
+		"MerchantAccountDelete",
+		"DELETE",
+		"/account/merchant/{merchantID}",
+		MerchantAccountDelete,
+	},
+	// Merchant search
+	Route{
+		"MerchantAccountSearch",
+		"POST",
+		"/account/merchantSearch",
+		MerchantAccountSearch,
+	},
 	// Transactions
 	// Credit initiation
 	Route{

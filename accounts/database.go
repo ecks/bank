@@ -462,3 +462,30 @@ func getAccountByHolderDetails(ID string, givenName string, familyName string, e
 
 	return
 }
+
+func createMerchantAccount(merchantDetails *MerchantDetails, accountDetails *AccountDetails, accountHolderDetails *AccountHolderDetails) (err error) {
+	// Convert variables
+	t := time.Now()
+	sqlTime := int32(t.Unix())
+
+	err = doCreateAccount(sqlTime, accountDetails, accountHolderDetails)
+	if err != nil {
+		return errors.New("accounts.createAccount: " + err.Error())
+	}
+
+	err = doCreateMerchant(sqlTime, merchantDetails)
+	if err != nil {
+		return errors.New("accounts.createMerchantAccount: " + err.Error())
+	}
+
+	err = doCreateAccountUserAccount(sqlTime, accountHolderDetails, accountDetails)
+	if err != nil {
+		return errors.New("accounts.createMerchantAccount: " + err.Error())
+	}
+
+	return
+}
+
+func doCreateMerchant(sqltime int32, merchantDetails *MerchantDetails) (err error) {
+	return
+}

@@ -51,6 +51,13 @@ Accounts (acmt) transactions are as follows:
 1005 - SearchForAccount
 1006 - RetrieveAccount
 
+## Merchant accounts
+1100 - MerchantAccountCreate
+1101 - MerchantAccountUpdate
+1102 - MerchantAccountView
+1103 - MerchantAccountDelete
+1104 - MerchantAccountSearch
+
 */
 
 /* acmt~1~
@@ -99,6 +106,26 @@ type AccountDetails struct {
 	Overdraft         decimal.Decimal
 	AvailableBalance  decimal.Decimal
 	Type              string
+	Timestamp         int
+}
+
+type MerchantDetails struct {
+	ID                string
+	Name              string
+	Description       string
+	ContactGivenName  string
+	ContactFamilyName string
+	AddressLine1      string
+	AddressLine2      string
+	AddressLine3      string
+	Country           string
+	PostalCode        string
+	BusinessSector    string
+	Website           string
+	ContactPhone      string
+	ContactFax        string
+	ContactEmail      string
+	Logo              string
 	Timestamp         int
 }
 
@@ -181,6 +208,56 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 			return
 		}
 		result, err = retrieveAccount(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account create
+	case 1100:
+		if len(data) < 18 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountCreate(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account update
+	case 1101:
+		if len(data) < 18 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountUpdate(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account view
+	case 1102:
+		if len(data) < 4 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountView(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account delete
+	case 1103:
+		if len(data) < 4 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountDelete(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account search
+	case 1104:
+		if len(data) < 4 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountSearch(data)
 		if err != nil {
 			return "", errors.New("accounts.ProcessAccount: " + err.Error())
 		}
@@ -455,5 +532,92 @@ func CheckUserAccountValidFromToken(userID string, accountNumber string) (err er
 	if !senderValid {
 		return errors.New("accounts.accounts.CheckUserAccountValidFromToken: Sender invalid")
 	}
+	return
+}
+
+func merchantAccountCreate(data []string) (result interface{}, err error) {
+	tokenUser, err := appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: " + err.Error())
+	}
+	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
+
+	accountHolder, err := getAccountUser(tokenUser)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: Could not retrieve account user from token user.")
+	}
+	// Create account
+	merchantObject, accountDetails, err := setMerchantDetails(data)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: " + err.Error())
+	}
+
+	err = createMerchantAccount(&merchantObject, &accountDetails, &accountHolder)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: " + err.Error())
+	}
+
+	result = merchantObject.ID
+	return
+}
+
+func merchantAccountUpdate(data []string) (result interface{}, err error) {
+	return
+}
+
+func merchantAccountDelete(data []string) (result interface{}, err error) {
+	return
+}
+
+func merchantAccountView(data []string) (result interface{}, err error) {
+	return
+}
+
+func merchantAccountSearch(data []string) (result interface{}, err error) {
+	return
+}
+
+func setMerchantDetails(data []string) (merchantDetails MerchantDetails, accountDetails AccountDetails, err error) {
+	if len(data) < 18 {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Not all field values present")
+	}
+
+	if data[3] == "" {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Merchant name cannot be empty")
+	}
+	if data[4] == "" {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Merchant description cannot be empty")
+	}
+	if data[12] == "" {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Merchant business sector cannot be empty")
+	}
+	if data[16] == "" {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Merchant contact email cannot be empty")
+	}
+
+	merchantDetails.Name = data[3]
+	merchantDetails.Description = data[4]
+	merchantDetails.ContactGivenName = data[5]
+	merchantDetails.ContactFamilyName = data[6]
+	merchantDetails.AddressLine1 = data[7]
+	merchantDetails.AddressLine2 = data[8]
+	merchantDetails.AddressLine3 = data[9]
+	merchantDetails.Country = data[10]
+	merchantDetails.PostalCode = data[11]
+	merchantDetails.BusinessSector = data[12]
+	merchantDetails.Website = data[13]
+	merchantDetails.ContactPhone = data[14]
+	merchantDetails.ContactFax = data[15]
+	merchantDetails.ContactEmail = data[16]
+	// @FIXME We leave logo out for now, not sure how to parse pictures
+
+	accountDetails.BankNumber = BANK_NUMBER
+	accountDetails.AccountHolderName = data[3] // Business Name
+	accountDetails.AccountBalance = decimal.NewFromFloat(OPENING_BALANCE)
+	accountDetails.Overdraft = decimal.NewFromFloat(OPENING_OVERDRAFT)
+	accountDetails.AvailableBalance = decimal.NewFromFloat(OPENING_BALANCE + OPENING_OVERDRAFT)
+
+	accountDetails.Type = "merchant"
+
 	return
 }

@@ -166,7 +166,7 @@ func CreateUserPassword(user string, clearTextPassword string) (result string, e
 
 func RemoveUserPassword(user string, clearTextPassword string) (result string, err error) {
 	// Check for existing account
-	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_user_auth` WHERE `accountHolderIdentificationNumber` = ?", user)
+	rows, err := Config.Db.Query("SELECT * FROM `accounts_user_auth` WHERE `accountHolderIdentificationNumber` = ?", user)
 	if err != nil {
 		return "", errors.New("appauth.RemoveUserPassword: Error with select query. " + err.Error())
 	}
