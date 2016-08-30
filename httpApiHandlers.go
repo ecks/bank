@@ -60,10 +60,10 @@ func AuthLogin(w http.ResponseWriter, r *http.Request) {
 
 // Create auth account
 func AuthCreate(w http.ResponseWriter, r *http.Request) {
-	user := r.FormValue("User")
+	userID := r.FormValue("UserIdentificationNumber")
 	password := r.FormValue("Password")
 
-	response, err := appauth.ProcessAppAuth([]string{"0", "appauth", "3", user, password})
+	response, err := appauth.ProcessAppAuth([]string{"0", "appauth", "3", userID, password})
 	Response(response, err, w, r)
 	return
 }
@@ -110,6 +110,7 @@ func AccountCreate(w http.ResponseWriter, r *http.Request) {
 	accountHolderAddressLine2 := r.FormValue("AccountHolderAddressLine2")
 	accountHolderAddressLine3 := r.FormValue("AccountHolderAddressLine3")
 	accountHolderPostalCode := r.FormValue("AccountHolderPostalCode")
+	accountType := r.FormValue("AccountType")
 
 	req := []string{
 		"0",
@@ -126,6 +127,7 @@ func AccountCreate(w http.ResponseWriter, r *http.Request) {
 		accountHolderAddressLine2,
 		accountHolderAddressLine3,
 		accountHolderPostalCode,
+		accountType,
 	}
 
 	response, err := accounts.ProcessAccount(req)
@@ -259,13 +261,19 @@ func TransactionList(w http.ResponseWriter, r *http.Request) {
 		Response("", err, w, r)
 		return
 	}
+	// Get account number from header
+	accountNumber := r.Header.Get("X-Auth-AccountNumber")
+	if accountNumber == "" {
+		Response("", errors.New("httpApiHandlers.TransactionList: Could not retrieve accountNumber from headers"), w, r)
+		return
+	}
 
 	vars := mux.Vars(r)
 	perPage := vars["perPage"]
 	page := vars["page"]
 	timestamp := vars["timestamp"]
 
-	response, err := transactions.ProcessPAIN([]string{token, "pain", "1001", page, perPage, timestamp})
+	response, err := transactions.ProcessPAIN([]string{token, "pain", "1001", accountNumber, page, perPage, timestamp})
 	Response(response, err, w, r)
 	return
 }
