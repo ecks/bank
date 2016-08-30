@@ -110,23 +110,24 @@ type AccountDetails struct {
 }
 
 type MerchantDetails struct {
-	ID                string
-	Name              string
-	Description       string
-	ContactGivenName  string
-	ContactFamilyName string
-	AddressLine1      string
-	AddressLine2      string
-	AddressLine3      string
-	Country           string
-	PostalCode        string
-	BusinessSector    string
-	Website           string
-	ContactPhone      string
-	ContactFax        string
-	ContactEmail      string
-	Logo              string
-	Timestamp         int
+	ID                   string
+	Name                 string
+	Description          string
+	ContactGivenName     string
+	ContactFamilyName    string
+	AddressLine1         string
+	AddressLine2         string
+	AddressLine3         string
+	Country              string
+	PostalCode           string
+	BusinessSector       string
+	Website              string
+	ContactPhone         string
+	ContactFax           string
+	ContactEmail         string
+	Logo                 string
+	IdentificationNumber string
+	Timestamp            int
 }
 
 // Set up some defaults
@@ -547,7 +548,7 @@ func merchantAccountCreate(data []string) (result interface{}, err error) {
 		return "", errors.New("accounts.merchantAccountCreate: Could not retrieve account user from token user.")
 	}
 	// Create account
-	merchantObject, accountDetails, err := setMerchantDetails(data)
+	merchantObject, accountDetails, err := setMerchantDetails(data, accountHolder.IdentificationNumber)
 	if err != nil {
 		return "", errors.New("accounts.merchantAccountCreate: " + err.Error())
 	}
@@ -574,7 +575,7 @@ func merchantAccountUpdate(data []string) (result interface{}, err error) {
 	}
 
 	// Set merchant details
-	merchantObject, _, err := setMerchantDetails(data)
+	merchantObject, _, err := setMerchantDetails(data, accountHolder.IdentificationNumber)
 	if err != nil {
 		return "", errors.New("accounts.merchantAccountUpdate: " + err.Error())
 	}
@@ -601,6 +602,38 @@ func merchantAccountUpdate(data []string) (result interface{}, err error) {
 }
 
 func merchantAccountDelete(data []string) (result interface{}, err error) {
+	tokenUser, err := appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: " + err.Error())
+	}
+	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
+
+	accountHolderDetails, err := getAccountUser(tokenUser)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: Could not retrieve account user from token user.")
+	}
+
+	accountDetails, err := getAccountDetails(data[5])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: Could not retrieve account details from account number provided.")
+	}
+
+	merchantObject, err := getMerchantFromMerchantID(data[4])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: Could not retrieve current merchant using given merchant ID. " + err.Error())
+	}
+
+	// Make sure the user has access to the merchant account
+	err = CheckUserAccountValidFromToken(accountHolderDetails.IdentificationNumber, merchantObject.ID)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: Account holder not valid for given Merchant ID. " + err.Error())
+	}
+
+	err = deleteMerchantAccount(&merchantObject, &accountDetails, &accountHolderDetails)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: Could not update merchant. " + err.Error())
+	}
+
 	return
 }
 
@@ -622,7 +655,7 @@ func merchantAccountSearch(data []string) (result interface{}, err error) {
 	return
 }
 
-func setMerchantDetails(data []string) (merchantDetails MerchantDetails, accountDetails AccountDetails, err error) {
+func setMerchantDetails(data []string, identificationNumber string) (merchantDetails MerchantDetails, accountDetails AccountDetails, err error) {
 	if len(data) < 19 {
 		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Not all field values present")
 	}
@@ -655,6 +688,7 @@ func setMerchantDetails(data []string) (merchantDetails MerchantDetails, account
 	merchantDetails.ContactFax = data[15]
 	merchantDetails.ContactEmail = data[16]
 	// @FIXME We leave logo out for now, not sure how to parse pictures
+	merchantDetails.IdentificationNumber = identificationNumber
 
 	if data[18] != "" {
 		merchantDetails.ID = data[18]

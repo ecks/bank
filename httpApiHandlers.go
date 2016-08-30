@@ -408,8 +408,9 @@ func MerchantAccountDelete(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	merchantID := vars["merchantID"]
+	accountID := vars["accountID"]
 
-	response, err := accounts.ProcessAccount([]string{token, "acmt", "1103", merchantID})
+	response, err := accounts.ProcessAccount([]string{token, "acmt", "1103", merchantID, accountID})
 	Response(response, err, w, r)
 	return
 }

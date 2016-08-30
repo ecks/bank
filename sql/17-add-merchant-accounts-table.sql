@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS merchants (
 `merchantContactFax` text NOT NULL, 
 `merchantContactEmail` text NOT NULL, 
 `merchantLogo` BLOB NOT NULL, 
+`merchantIdentificationNumber` text NOT NULL, 
 `timestamp` int NOT NULL, 
 PRIMARY KEY (`id`)
 );
