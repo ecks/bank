@@ -490,6 +490,10 @@ func searchAccount(data []string) (accounts interface{}, err error) {
 	}
 
 	searchString := data[3]
+	if len(searchString) < 4 {
+		return "", errors.New("accounts.merchantAccountSearch: Please provide a search term of at least 4 characters.")
+	}
+
 	accounts, err = getAccountFromSearchData(searchString)
 	if err != nil {
 		return "", errors.New("accounts.searchAccount: Searching for account error. " + err.Error())
@@ -679,6 +683,10 @@ func merchantAccountSearch(data []string) (result interface{}, err error) {
 	}
 
 	searchString := data[3]
+	if len(searchString) < 2 {
+		return "", errors.New("accounts.merchantAccountSearch: Please provide a search term of at least 2 characters.")
+	}
+
 	result, err = getMerchantAccountFromSearchData(searchString)
 	if err != nil {
 		return "", errors.New("accounts.merchantAccountSearch: Searching for account error. " + err.Error())
