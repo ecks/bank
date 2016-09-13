@@ -92,21 +92,23 @@ func doCreateAccount(sqlTime int32, accountDetails *AccountDetails, accountHolde
 		return errors.New("accounts.doCreateAccount: " + err.Error())
 	}
 
-	// We insert a record into account user accounts
-	insertStatement = "INSERT INTO accounts_users_accounts (`accountHolderIdentificationNumber`, `accountNumber`, `bankNumber`, `timestamp`) "
-	insertStatement += "VALUES(?, ?, ?, ?)"
-	stmtIns, err = Config.Db.Prepare(insertStatement)
-	if err != nil {
-		return errors.New("accounts.doCreateAccount: " + err.Error())
-	}
+	/*
+		// We insert a record into account user accounts
+		insertStatement = "INSERT INTO accounts_users_accounts (`accountHolderIdentificationNumber`, `accountNumber`, `bankNumber`, `timestamp`) "
+		insertStatement += "VALUES(?, ?, ?, ?)"
+		stmtIns, err = Config.Db.Prepare(insertStatement)
+		if err != nil {
+			return errors.New("accounts.doCreateAccount: " + err.Error())
+		}
 
-	// Prepare statement for inserting data
-	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+		// Prepare statement for inserting data
+		defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
 
-	_, err = stmtIns.Exec(accountHolderDetails.IdentificationNumber, accountDetails.AccountNumber, accountDetails.BankNumber, sqlTime)
-	if err != nil {
-		return errors.New("accounts.doCreateAccount: " + err.Error())
-	}
+		_, err = stmtIns.Exec(accountHolderDetails.IdentificationNumber, accountDetails.AccountNumber, accountDetails.BankNumber, sqlTime)
+		if err != nil {
+			return errors.New("accounts.doCreateAccount: " + err.Error())
+		}
+	*/
 	return
 }
 
@@ -406,8 +408,11 @@ func doDeleteAccountPushToken(accountNumber string, pushToken string, platform s
 	return
 }
 
-func getAccountFromSearchData(searchString string) (allAccountDetails []AccountHolderDetails, err error) {
-	rows, err := Config.Db.Query("SELECT `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderEmailAddress` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` = ? OR `accountHolderGivenName` = ? OR `accountHolderFamilyName` = ? OR  `accountHolderEmailAddress` = ? LIMIT 10", searchString, searchString, searchString, searchString)
+func getAccountFromSearchData(searchStr string) (allAccountDetails []AccountHolderDetails, err error) {
+	searchString := "%" + searchStr + "%"
+	// We don't want to fuzzy search on some data as this may pose a security issue
+	// e.g. Getting all bank accounts by domain on email address
+	rows, err := Config.Db.Query("SELECT `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderEmailAddress` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` like ? OR `accountHolderGivenName` like ? OR `accountHolderFamilyName` like ? OR  `accountHolderEmailAddress` = ? LIMIT 10", searchString, searchString, searchString, searchString)
 	if err != nil {
 		return []AccountHolderDetails{}, errors.New("accounts.getAccountMeta: " + err.Error())
 	}
@@ -458,6 +463,295 @@ func getAccountByHolderDetails(ID string, givenName string, familyName string, e
 			accountIDs = append(accountIDs, accountID)
 			count++
 		}
+	}
+
+	return
+}
+
+func createMerchantAccount(merchantDetails *MerchantDetails, accountDetails *AccountDetails, accountHolderDetails *AccountHolderDetails) (err error) {
+	// Convert variables
+	t := time.Now()
+	sqlTime := int32(t.Unix())
+
+	err = doCreateAccount(sqlTime, accountDetails, accountHolderDetails)
+	if err != nil {
+		return errors.New("accounts.createAccount: " + err.Error())
+	}
+
+	err = doCreateMerchant(sqlTime, merchantDetails)
+	if err != nil {
+		return errors.New("accounts.createMerchantAccount: " + err.Error())
+	}
+
+	err = doCreateAccountUserAccount(sqlTime, accountHolderDetails, accountDetails)
+	if err != nil {
+		return errors.New("accounts.createMerchantAccount: " + err.Error())
+	}
+
+	err = doCreateAccountMerchantAccount(sqlTime, merchantDetails, accountHolderDetails, accountDetails)
+	if err != nil {
+		return errors.New("accounts.createMerchantAccount: " + err.Error())
+	}
+
+	return
+}
+
+func doCreateMerchant(sqltime int32, merchantDetails *MerchantDetails) (err error) {
+	insertStatement := "INSERT INTO merchants (`merchantID`, `merchantName`, `merchantDescription`, `merchantContactGivenName`, `merchantContactFamilyName`, `merchantAddressLine1`, `merchantAddressLine2`, `merchantAddressLine3`, `merchantCountry`, `merchantPostalCode`, `merchantBusinessSector`, `merchantWebsite`, `merchantContactPhone`, `merchantContactFax`, `merchantContactEmail`, `merchantLogo`, `merchantIdentificationNumber`,`timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?, ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?, ?)"
+	stmtIns, err := Config.Db.Prepare(insertStatement)
+	if err != nil {
+		return errors.New("accounts.doCreateMerchant: " + err.Error())
+	}
+	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+
+	// Generate account number
+	merchantDetails.ID = uuid.NewV4().String()
+
+	_, err = stmtIns.Exec(
+		merchantDetails.ID,
+		merchantDetails.Name,
+		merchantDetails.Description,
+		merchantDetails.ContactGivenName,
+		merchantDetails.ContactFamilyName,
+		merchantDetails.AddressLine1,
+		merchantDetails.AddressLine2,
+		merchantDetails.AddressLine3,
+		merchantDetails.Country,
+		merchantDetails.PostalCode,
+		merchantDetails.BusinessSector,
+		merchantDetails.Website,
+		merchantDetails.ContactPhone,
+		merchantDetails.ContactFax,
+		merchantDetails.ContactEmail,
+		"", //merchantDetails.Logo,
+		merchantDetails.IdentificationNumber,
+		sqltime,
+	)
+
+	if err != nil {
+		return errors.New("accounts.doCreateMerchant: " + err.Error())
+	}
+
+	return
+}
+
+func updateMerchant(merchantDetails *MerchantDetails) (err error) {
+	stmt := "UPDATE merchants SET  `merchantName` = ?,  `merchantDescription` = ? ,  `merchantContactGivenName` = ? ,  `merchantContactFamilyName` = ? ,  `merchantAddressLine1` = ? ,  `merchantAddressLine2` = ? ,  `merchantAddressLine3` = ? ,  `merchantCountry` = ? ,  `merchantPostalCode` = ? ,   `merchantBusinessSector` = ? ,  `merchantWebsite` = ? ,  `merchantContactPhone` = ? ,  `merchantContactFax` = ? ,  `merchantContactEmail` = ? ,  `merchantLogo` = ? ,  `timestamp` = ? WHERE `merchantID` = ? "
+	stmtRes, err := Config.Db.Prepare(stmt)
+	if err != nil {
+		return errors.New("accounts.updateMerchant: " + err.Error())
+	}
+	defer stmtRes.Close() // Close the statement when we leave main() / the program terminates
+
+	t := time.Now()
+	sqlTime := int32(t.Unix())
+
+	_, err = stmtRes.Exec(
+		merchantDetails.Name,
+		merchantDetails.Description,
+		merchantDetails.ContactGivenName,
+		merchantDetails.ContactFamilyName,
+		merchantDetails.AddressLine1,
+		merchantDetails.AddressLine2,
+		merchantDetails.AddressLine3,
+		merchantDetails.Country,
+		merchantDetails.PostalCode,
+		merchantDetails.BusinessSector,
+		merchantDetails.Website,
+		merchantDetails.ContactPhone,
+		merchantDetails.ContactFax,
+		merchantDetails.ContactEmail,
+		"", //merchantDetails.Logo,
+		sqlTime,
+		merchantDetails.ID,
+	)
+
+	if err != nil {
+		return errors.New("accounts.updateMerchant: " + err.Error())
+	}
+
+	return
+}
+
+func getMerchantFromMerchantID(merchantID string) (merchantDetails MerchantDetails, err error) {
+	rows, err := Config.Db.Query("SELECT `merchantID`, `merchantName`, `merchantDescription`, `merchantContactGivenName`, `merchantContactFamilyName`, `merchantAddressLine1`, `merchantAddressLine2`, `merchantAddressLine3`, `merchantCountry`, `merchantPostalCode`, `merchantBusinessSector`, `merchantWebsite`, `merchantContactPhone`, `merchantContactFax`, `merchantContactEmail`, `merchantLogo`, `timestamp` FROM `merchants` WHERE `merchantID` = ?", merchantID)
+	if err != nil {
+		return MerchantDetails{}, errors.New("accounts.getMerchantFromMerchantID: " + err.Error())
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := rows.Scan(
+			&merchantDetails.ID,
+			&merchantDetails.Name,
+			&merchantDetails.Description,
+			&merchantDetails.ContactGivenName,
+			&merchantDetails.ContactFamilyName,
+			&merchantDetails.AddressLine1,
+			&merchantDetails.AddressLine2,
+			&merchantDetails.AddressLine3,
+			&merchantDetails.Country,
+			&merchantDetails.PostalCode,
+			&merchantDetails.BusinessSector,
+			&merchantDetails.Website,
+			&merchantDetails.ContactPhone,
+			&merchantDetails.ContactFax,
+			&merchantDetails.ContactEmail,
+			&merchantDetails.Logo,
+			&merchantDetails.Timestamp,
+		); err != nil {
+			return MerchantDetails{}, errors.New("accounts.getMerchantFromMerchantID: " + err.Error())
+			break
+		}
+	}
+
+	return
+}
+
+func deleteMerchantAccount(merchantDetails *MerchantDetails, accountDetails *AccountDetails, accountHolderDetails *AccountHolderDetails) (err error) {
+	// Delete the account itself
+	err = doDeleteAccount(accountDetails)
+	if err != nil {
+		return errors.New("accounts.deleteMerchantAccount: " + err.Error())
+	}
+
+	// Delete the merchant user account
+	err = doDeleteMerchantAccount(merchantDetails)
+	if err != nil {
+		return errors.New("accounts.deleteMerchantAccount: " + err.Error())
+	}
+
+	// Remove the account from the accounts_users_accounts list
+	err = doDeleteSingleAccountUserAccounts(accountHolderDetails, accountDetails)
+	if err != nil {
+		return errors.New("accounts.deleteMerchantAccount: " + err.Error())
+	}
+
+	// Remove the account from the merchants_user_accounts list
+	err = doDeleteAccountMerchantAccounts(merchantDetails, accountHolderDetails)
+	if err != nil {
+		return errors.New("accounts.deleteMerchantAccount: " + err.Error())
+	}
+
+	return
+}
+
+func doDeleteMerchantAccount(merchantDetails *MerchantDetails) (err error) {
+	deleteStatement := "DELETE FROM merchant WHERE `merchantID` = ? "
+	stmtDel, err := Config.Db.Prepare(deleteStatement)
+	if err != nil {
+		return errors.New("accounts.doDeleteAccount: " + err.Error())
+	}
+
+	// Prepare statement for inserting data
+	defer stmtDel.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtDel.Exec(merchantDetails.ID)
+	if err != nil {
+		return errors.New("accounts.doDeleteAccount: " + err.Error())
+	}
+	// Can use db.RowsAffected() to check
+	return
+}
+
+func doDeleteSingleAccountUserAccounts(accountHolderDetails *AccountHolderDetails, accountDetails *AccountDetails) (err error) {
+	// Create account meta
+	deleteStatement := "DELETE FROM accounts_users_accounts WHERE `accountHolderIdentificationNumber` = ? AND `accountNumber` = ? AND `bankNumber` = ?"
+	stmtDel, err := Config.Db.Prepare(deleteStatement)
+	if err != nil {
+		return errors.New("accounts.doDeleteSingleAccountUserAccounts: " + err.Error())
+	}
+	defer stmtDel.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtDel.Exec(accountHolderDetails.IdentificationNumber, accountDetails.AccountNumber, accountDetails.BankNumber)
+
+	if err != nil {
+		return errors.New("accounts.doDeleteSingleAccountUserAccounts: " + err.Error())
+	}
+
+	return
+}
+
+func doCreateAccountMerchantAccount(sqlTime int32, merchantDetails *MerchantDetails, accountHolderDetails *AccountHolderDetails, accountDetails *AccountDetails) (err error) {
+	insertStatement := "INSERT INTO merchant_users_accounts (`accountHolderIdentificationNumber`, `merchantID`, `accountNumber`, `bankNumber`, `timestamp`) "
+	insertStatement += "VALUES(?, ?, ?, ?, ?)"
+	stmtIns, err := Config.Db.Prepare(insertStatement)
+	if err != nil {
+		return errors.New("accounts.doCreateAccountMerchantAccount: " + err.Error())
+	}
+	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtIns.Exec(accountHolderDetails.IdentificationNumber, merchantDetails.ID, accountDetails.AccountNumber, accountDetails.BankNumber, sqlTime)
+
+	if err != nil {
+		return errors.New("accounts.doCreateAccountMerchantAccount: " + err.Error())
+	}
+
+	return
+}
+
+func doDeleteAccountMerchantAccounts(merchantDetails *MerchantDetails, accountHolderDetails *AccountHolderDetails) (err error) {
+	// Create account meta
+	deleteStatement := "DELETE FROM merchant_users_accounts WHERE `accountHolderIdentificationNumber` = ? AND `merchantID` = ?"
+	stmtDel, err := Config.Db.Prepare(deleteStatement)
+	if err != nil {
+		return errors.New("accounts.doDeleteAccountMerchantAccounts: " + err.Error())
+	}
+	defer stmtDel.Close() // Close the statement when we leave main() / the program terminates
+
+	_, err = stmtDel.Exec(accountHolderDetails.IdentificationNumber, merchantDetails.ID)
+
+	if err != nil {
+		return errors.New("accounts.doDeleteAccountMerchantAccounts: " + err.Error())
+	}
+
+	return
+}
+
+func getAllMerchantAccountNumbersByMerchantID(merchantID string) (accountIDs []string, err error) {
+	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `merchant_users_accounts` WHERE `merchantID` = ?", merchantID)
+	if err != nil {
+		return nil, errors.New("accounts.getAllMerchantAccountNumbersByMerchantID: " + err.Error())
+	}
+	defer rows.Close()
+
+	count := 0
+	// Return an array
+	for rows.Next() {
+		var accountID string
+		if err := rows.Scan(&accountID); err != nil {
+			break
+		}
+		count++
+		accountIDs = append(accountIDs, accountID)
+	}
+
+	if count == 0 {
+		return nil, errors.New("accounts.getAllMerchantAccountNumbersByMerchantID: Account not found")
+	}
+
+	return
+}
+
+func getMerchantAccountFromSearchData(searchStr string) (allMerchantDetails []MerchantDetails, err error) {
+	searchString := "%" + searchStr + "%"
+	rows, err := Config.Db.Query("SELECT `merchantID`, `merchantName`, `merchantDescription` FROM `merchants` WHERE `merchantID` like ? OR `merchantName` like ? OR `merchantDescription` like ? OR  `merchantWebsite` like ? LIMIT 10", searchString, searchString, searchString, searchString)
+	if err != nil {
+		return []MerchantDetails{}, errors.New("accounts.getMerchantAccountFromSearchData: " + err.Error())
+	}
+	defer rows.Close()
+
+	allMerchantDetails = []MerchantDetails{}
+	count := 0
+	for rows.Next() {
+		merchantDetails := MerchantDetails{}
+		if err := rows.Scan(&merchantDetails.ID, &merchantDetails.Name, &merchantDetails.Description); err != nil {
+			return []MerchantDetails{}, errors.New("accounts.getMerchantAccountFromSearchData: " + err.Error())
+			break
+		}
+		allMerchantDetails = append(allMerchantDetails, merchantDetails)
+		count++
 	}
 
 	return

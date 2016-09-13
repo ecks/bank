@@ -51,6 +51,13 @@ Accounts (acmt) transactions are as follows:
 1005 - SearchForAccount
 1006 - RetrieveAccount
 
+## Merchant accounts
+1100 - MerchantAccountCreate
+1101 - MerchantAccountUpdate
+1102 - MerchantAccountView
+1103 - MerchantAccountDelete
+1104 - MerchantAccountSearch
+
 */
 
 /* acmt~1~
@@ -100,6 +107,27 @@ type AccountDetails struct {
 	AvailableBalance  decimal.Decimal
 	Type              string
 	Timestamp         int
+}
+
+type MerchantDetails struct {
+	ID                   string
+	Name                 string
+	Description          string
+	ContactGivenName     string
+	ContactFamilyName    string
+	AddressLine1         string
+	AddressLine2         string
+	AddressLine3         string
+	Country              string
+	PostalCode           string
+	BusinessSector       string
+	Website              string
+	ContactPhone         string
+	ContactFax           string
+	ContactEmail         string
+	Logo                 string
+	IdentificationNumber string
+	Timestamp            int
 }
 
 // Set up some defaults
@@ -181,6 +209,56 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 			return
 		}
 		result, err = retrieveAccount(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account create
+	case 1100:
+		if len(data) < 19 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountCreate(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account update
+	case 1101:
+		if len(data) < 19 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountUpdate(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account view
+	case 1102:
+		if len(data) < 4 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountView(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account delete
+	case 1103:
+		if len(data) < 4 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountDelete(data)
+		if err != nil {
+			return "", errors.New("accounts.ProcessAccount: " + err.Error())
+		}
+	// Merchant account search
+	case 1104:
+		if len(data) < 4 {
+			err = errors.New("accounts.ProcessAccount: Not all fields present")
+			return
+		}
+		result, err = merchantAccountSearch(data)
 		if err != nil {
 			return "", errors.New("accounts.ProcessAccount: " + err.Error())
 		}
@@ -412,6 +490,10 @@ func searchAccount(data []string) (accounts interface{}, err error) {
 	}
 
 	searchString := data[3]
+	if len(searchString) < 4 {
+		return "", errors.New("accounts.merchantAccountSearch: Please provide a search term of at least 4 characters.")
+	}
+
 	accounts, err = getAccountFromSearchData(searchString)
 	if err != nil {
 		return "", errors.New("accounts.searchAccount: Searching for account error. " + err.Error())
@@ -453,7 +535,271 @@ func CheckUserAccountValidFromToken(userID string, accountNumber string) (err er
 	}
 
 	if !senderValid {
-		return errors.New("accounts.accounts.CheckUserAccountValidFromToken: Sender invalid")
+		return errors.New("accounts.CheckUserAccountValidFromToken: Sender invalid")
 	}
 	return
+}
+
+func merchantAccountCreate(data []string) (result interface{}, err error) {
+	tokenUser, err := appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: " + err.Error())
+	}
+	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
+
+	accountHolder, err := getAccountUser(tokenUser)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: Could not retrieve account user from token user.")
+	}
+	// Create account
+	merchantObject, accountDetails, err := setMerchantDetails(data, accountHolder.IdentificationNumber, "create")
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: " + err.Error())
+	}
+
+	err = createMerchantAccount(&merchantObject, &accountDetails, &accountHolder)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: " + err.Error())
+	}
+
+	result = merchantObject.ID
+	return
+}
+
+func merchantAccountUpdate(data []string) (result interface{}, err error) {
+	tokenUser, err := appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: " + err.Error())
+	}
+	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
+
+	accountHolder, err := getAccountUser(tokenUser)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: Could not retrieve account user from token user.")
+	}
+
+	// Set merchant details
+	merchantObject, _, err := setMerchantDetails(data, accountHolder.IdentificationNumber, "update")
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: " + err.Error())
+	}
+
+	// Get list of accounts linked to merchant
+	accountIDs, err := getAllMerchantAccountNumbersByMerchantID(merchantObject.ID)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: Could not get accountIDs associated to Merchant ID: " + err.Error())
+	}
+
+	// Make sure the user has access to all merchant accounts
+	for _, aID := range accountIDs {
+		err = CheckUserAccountValidFromToken(accountHolder.IdentificationNumber, aID)
+		if err != nil {
+			return "", errors.New("accounts.merchantAccountUpdate: Account holder not valid for given Merchant ID. " + err.Error())
+		}
+	}
+
+	currentMerchantObject, err := getMerchantFromMerchantID(merchantObject.ID)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: Could not retrieve current merchant using given merchant ID. " + err.Error())
+	}
+
+	// Check which values are updated and set in new object
+	compareUpdateMerchantWithCurrentMerchant(&merchantObject, &currentMerchantObject)
+
+	err = updateMerchant(&merchantObject)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: Could not update merchant. " + err.Error())
+	}
+	return
+}
+
+func merchantAccountDelete(data []string) (result interface{}, err error) {
+	// Currently this deletes an account entirely
+	// Deleting is needed but backups of all data should be done
+	// The account could be marked as deleted when called through the API
+	// @TODO: Find best solution here. One option: log all data in separate place
+	// (perhaps in a file) and remove the record
+	tokenUser, err := appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: " + err.Error())
+	}
+	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
+
+	accountHolderDetails, err := getAccountUser(tokenUser)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: Could not retrieve account user from token user.")
+	}
+
+	accountDetails, err := getAccountDetails(data[5])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountCreate: Could not retrieve account details from account number provided.")
+	}
+
+	merchantObject, err := getMerchantFromMerchantID(data[4])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: Could not retrieve current merchant using given merchant ID. " + err.Error())
+	}
+
+	// Get list of accounts linked to merchant
+	accountIDs, err := getAllMerchantAccountNumbersByMerchantID(merchantObject.ID)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: Could not get accountIDs associated to Merchant ID: " + err.Error())
+	}
+
+	// Make sure the user has access to all merchant accounts
+	for _, aID := range accountIDs {
+		err = CheckUserAccountValidFromToken(accountHolderDetails.IdentificationNumber, aID)
+		if err != nil {
+			return "", errors.New("accounts.merchantAccountUpdate: Account holder not valid for given Merchant ID. " + err.Error())
+		}
+	}
+
+	err = deleteMerchantAccount(&merchantObject, &accountDetails, &accountHolderDetails)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountUpdate: Could not update merchant. " + err.Error())
+	}
+
+	return
+}
+
+func merchantAccountView(data []string) (merchant MerchantDetails, err error) {
+	_, err = appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return MerchantDetails{}, errors.New("accounts.merchantAccountUpdate: " + err.Error())
+	}
+	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
+
+	merchant, err = getMerchantFromMerchantID(data[3])
+	if err != nil {
+		return MerchantDetails{}, errors.New("accounts.merchantAccountView: Could not retrieve merchant from given Merchant ID.")
+	}
+	return
+}
+
+func merchantAccountSearch(data []string) (result interface{}, err error) {
+	_, err = appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountSearch: " + err.Error())
+	}
+
+	searchString := data[3]
+	if len(searchString) < 2 {
+		return "", errors.New("accounts.merchantAccountSearch: Please provide a search term of at least 2 characters.")
+	}
+
+	result, err = getMerchantAccountFromSearchData(searchString)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountSearch: Searching for account error. " + err.Error())
+	}
+
+	return
+}
+
+func setMerchantDetails(data []string, identificationNumber string, setType string) (merchantDetails MerchantDetails, accountDetails AccountDetails, err error) {
+	if len(data) < 19 {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Not all field values present")
+	}
+
+	if data[3] == "" {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Merchant name cannot be empty")
+	}
+	if data[4] == "" {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Merchant description cannot be empty")
+	}
+	if data[12] == "" {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Merchant business sector cannot be empty")
+	}
+	if data[16] == "" {
+		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Merchant contact email cannot be empty")
+	}
+
+	merchantDetails.Name = data[3]
+	merchantDetails.Description = data[4]
+	merchantDetails.ContactGivenName = data[5]
+	merchantDetails.ContactFamilyName = data[6]
+	merchantDetails.AddressLine1 = data[7]
+	merchantDetails.AddressLine2 = data[8]
+	merchantDetails.AddressLine3 = data[9]
+	merchantDetails.Country = data[10]
+	merchantDetails.PostalCode = data[11]
+	merchantDetails.BusinessSector = data[12]
+	merchantDetails.Website = data[13]
+	merchantDetails.ContactPhone = data[14]
+	merchantDetails.ContactFax = data[15]
+	merchantDetails.ContactEmail = data[16]
+	// @FIXME We leave logo out for now, not sure how to parse pictures
+	merchantDetails.IdentificationNumber = identificationNumber
+
+	accountDetails.BankNumber = BANK_NUMBER
+	accountDetails.AccountHolderName = data[3] // Business Name
+	accountDetails.AccountBalance = decimal.NewFromFloat(OPENING_BALANCE)
+	accountDetails.Overdraft = decimal.NewFromFloat(OPENING_OVERDRAFT)
+	accountDetails.AvailableBalance = decimal.NewFromFloat(OPENING_BALANCE + OPENING_OVERDRAFT)
+
+	if setType == "create" {
+		accountType := data[18]
+		switch accountType {
+		case "":
+			accountType = "merchant" // Default to merchant account
+			break
+		case "merchant", "credit", "mortgage", "loan":
+			// Valid
+			break
+		default:
+			return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Account type not valid for a merchant, must be one of merchant, credit, mortgage, loan")
+			break
+		}
+		accountDetails.Type = accountType
+	} else if setType == "update" {
+		if data[18] != "" {
+			merchantDetails.ID = data[18]
+		}
+	}
+
+	return
+}
+
+func compareUpdateMerchantWithCurrentMerchant(merchantUpdate *MerchantDetails, merchantCurrent *MerchantDetails) {
+	if merchantUpdate.Name == "" {
+		merchantUpdate.Name = merchantCurrent.Name
+	}
+	if merchantUpdate.Description == "" {
+		merchantUpdate.Description = merchantCurrent.Description
+	}
+	if merchantUpdate.ContactGivenName == "" {
+		merchantUpdate.ContactGivenName = merchantCurrent.ContactGivenName
+	}
+	if merchantUpdate.ContactFamilyName == "" {
+		merchantUpdate.ContactFamilyName = merchantCurrent.ContactFamilyName
+	}
+	if merchantUpdate.AddressLine1 == "" {
+		merchantUpdate.AddressLine1 = merchantCurrent.AddressLine1
+	}
+	if merchantUpdate.AddressLine2 == "" {
+		merchantUpdate.AddressLine2 = merchantCurrent.AddressLine2
+	}
+	if merchantUpdate.AddressLine3 == "" {
+		merchantUpdate.AddressLine3 = merchantCurrent.AddressLine3
+	}
+	if merchantUpdate.Country == "" {
+		merchantUpdate.Country = merchantCurrent.Country
+	}
+	if merchantUpdate.PostalCode == "" {
+		merchantUpdate.PostalCode = merchantCurrent.PostalCode
+	}
+	if merchantUpdate.BusinessSector == "" {
+		merchantUpdate.BusinessSector = merchantCurrent.BusinessSector
+	}
+	if merchantUpdate.Website == "" {
+		merchantUpdate.Website = merchantCurrent.Website
+	}
+	if merchantUpdate.ContactPhone == "" {
+		merchantUpdate.ContactPhone = merchantCurrent.ContactPhone
+	}
+	if merchantUpdate.ContactFax == "" {
+		merchantUpdate.ContactFax = merchantCurrent.ContactFax
+	}
+	if merchantUpdate.ContactEmail == "" {
+		merchantUpdate.ContactEmail = merchantCurrent.ContactEmail
+	}
 }

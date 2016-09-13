@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS merchants (
+`id` int NOT NULL AUTO_INCREMENT,
+`merchantID` char(36) UNIQUE NOT NULL, 
+`merchantName` text NOT NULL, 
+`merchantDescription` text NOT NULL, 
+`merchantContactGivenName` text NOT NULL, 
+`merchantContactFamilyName` text NOT NULL, 
+`merchantAddressLine1` text NOT NULL, 
+`merchantAddressLine2` text NULL, 
+`merchantAddressLine3` text NOT NULL, 
+`merchantCountry` text NOT NULL, 
+`merchantPostalCode` text NULL, 
+`merchantBusinessSector` text NULL, 
+`merchantWebsite` text NOT NULL, 
+`merchantContactPhone` text NOT NULL, 
+`merchantContactFax` text NOT NULL, 
+`merchantContactEmail` text NOT NULL, 
+`merchantLogo` BLOB NOT NULL, 
+`merchantIdentificationNumber` text NOT NULL, 
+`timestamp` int NOT NULL, 
+PRIMARY KEY (`id`)
+);

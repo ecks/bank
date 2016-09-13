@@ -277,3 +277,157 @@ func TransactionList(w http.ResponseWriter, r *http.Request) {
 	Response(response, err, w, r)
 	return
 }
+
+// Merchant accounts
+// Merchant account create
+func MerchantAccountCreate(w http.ResponseWriter, r *http.Request) {
+	token, err := getTokenFromHeader(w, r)
+	if err != nil {
+		Response("", err, w, r)
+		return
+	}
+
+	merchantName := r.FormValue("MerchantName")
+	merchantDescription := r.FormValue("MerchantDescription")
+	merchantContactGivenName := r.FormValue("MerchantContactGivenName")
+	merchantContactFamilyName := r.FormValue("MerchantContactFamilyName")
+	merchantAddressLine1 := r.FormValue("MerchantAddressLine1")
+	merchantAddressLine2 := r.FormValue("MerchantAddressLine2")
+	merchantAddressLine3 := r.FormValue("MerchantAddressLine3")
+	merchantCountry := r.FormValue("MerchantCountry")
+	merchantPostalCode := r.FormValue("MerchantPostalCode")
+	merchantBusinessSector := r.FormValue("MerchantBusinessSector")
+	merchantWebsite := r.FormValue("MerchantWebsite")
+	merchantContactPhone := r.FormValue("MerchantContactPhone")
+	merchantContactFax := r.FormValue("MerchantContactFax")
+	merchantContactEmail := r.FormValue("MerchantContactEmail")
+	merchantLogo := r.FormValue("MerchantLogo")
+	merchantAccountType := r.FormValue("AccountType")
+
+	req := []string{
+		token,
+		"acmt",
+		"1100",
+		merchantName,
+		merchantDescription,
+		merchantContactGivenName,
+		merchantContactFamilyName,
+		merchantAddressLine1,
+		merchantAddressLine2,
+		merchantAddressLine3,
+		merchantCountry,
+		merchantPostalCode,
+		merchantBusinessSector,
+		merchantWebsite,
+		merchantContactPhone,
+		merchantContactFax,
+		merchantContactEmail,
+		merchantLogo,
+		merchantAccountType,
+	}
+
+	response, err := accounts.ProcessAccount(req)
+	Response(response, err, w, r)
+	return
+}
+
+// Merchant account update
+func MerchantAccountUpdate(w http.ResponseWriter, r *http.Request) {
+	token, err := getTokenFromHeader(w, r)
+	if err != nil {
+		Response("", err, w, r)
+		return
+	}
+
+	merchantID := r.FormValue("MerchantID")
+	merchantName := r.FormValue("MerchantName")
+	merchantDescription := r.FormValue("MerchantDescription")
+	merchantContactGivenName := r.FormValue("MerchantContactGivenName")
+	merchantContactFamilyName := r.FormValue("MerchantContactFamilyName")
+	merchantAddressLine1 := r.FormValue("MerchantAddressLine1")
+	merchantAddressLine2 := r.FormValue("MerchantAddressLine2")
+	merchantAddressLine3 := r.FormValue("MerchantAddressLine3")
+	merchantCountry := r.FormValue("MerchantCountry")
+	merchantPostalCode := r.FormValue("MerchantPostalCode")
+	merchantBusinessSector := r.FormValue("MerchantBusinessSector")
+	merchantWebsite := r.FormValue("MerchantWebsite")
+	merchantContactPhone := r.FormValue("MerchantContactPhone")
+	merchantContactFax := r.FormValue("MerchantContactFax")
+	merchantContactEmail := r.FormValue("MerchantContactEmail")
+	_ = r.FormValue("MerchantLogo")
+
+	req := []string{
+		token,
+		"acmt",
+		"1101",
+		merchantName,
+		merchantDescription,
+		merchantContactGivenName,
+		merchantContactFamilyName,
+		merchantAddressLine1,
+		merchantAddressLine2,
+		merchantAddressLine3,
+		merchantCountry,
+		merchantPostalCode,
+		merchantBusinessSector,
+		merchantWebsite,
+		merchantContactPhone,
+		merchantContactFax,
+		merchantContactEmail,
+		//merchantLogo,
+		"", // @FIXME We leave logo out for now, need to parse pictures nicely
+		merchantID,
+	}
+
+	response, err := accounts.ProcessAccount(req)
+	Response(response, err, w, r)
+	return
+}
+
+// Merchat account view
+func MerchantAccountView(w http.ResponseWriter, r *http.Request) {
+	token, err := getTokenFromHeader(w, r)
+	if err != nil {
+		Response("", err, w, r)
+		return
+	}
+
+	vars := mux.Vars(r)
+	merchantID := vars["merchantID"]
+
+	response, err := accounts.ProcessAccount([]string{token, "acmt", "1102", merchantID})
+	Response(response, err, w, r)
+	return
+}
+
+// Merchat account delete
+func MerchantAccountDelete(w http.ResponseWriter, r *http.Request) {
+	token, err := getTokenFromHeader(w, r)
+	if err != nil {
+		Response("", err, w, r)
+		return
+	}
+
+	vars := mux.Vars(r)
+	merchantID := vars["merchantID"]
+	accountID := vars["accountID"]
+
+	response, err := accounts.ProcessAccount([]string{token, "acmt", "1103", merchantID, accountID})
+	Response(response, err, w, r)
+	return
+}
+
+// Merchat account search
+func MerchantAccountSearch(w http.ResponseWriter, r *http.Request) {
+	token, err := getTokenFromHeader(w, r)
+	if err != nil {
+		Response("", err, w, r)
+		return
+	}
+
+	searchTerm := r.FormValue("Search")
+
+	response, err := accounts.ProcessAccount([]string{token, "acmt", "1104", searchTerm})
+	Response(response, err, w, r)
+	return
+}
