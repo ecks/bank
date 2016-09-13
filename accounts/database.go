@@ -92,21 +92,23 @@ func doCreateAccount(sqlTime int32, accountDetails *AccountDetails, accountHolde
 		return errors.New("accounts.doCreateAccount: " + err.Error())
 	}
 
-	// We insert a record into account user accounts
-	insertStatement = "INSERT INTO accounts_users_accounts (`accountHolderIdentificationNumber`, `accountNumber`, `bankNumber`, `timestamp`) "
-	insertStatement += "VALUES(?, ?, ?, ?)"
-	stmtIns, err = Config.Db.Prepare(insertStatement)
-	if err != nil {
-		return errors.New("accounts.doCreateAccount: " + err.Error())
-	}
+	/*
+		// We insert a record into account user accounts
+		insertStatement = "INSERT INTO accounts_users_accounts (`accountHolderIdentificationNumber`, `accountNumber`, `bankNumber`, `timestamp`) "
+		insertStatement += "VALUES(?, ?, ?, ?)"
+		stmtIns, err = Config.Db.Prepare(insertStatement)
+		if err != nil {
+			return errors.New("accounts.doCreateAccount: " + err.Error())
+		}
 
-	// Prepare statement for inserting data
-	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+		// Prepare statement for inserting data
+		defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
 
-	_, err = stmtIns.Exec(accountHolderDetails.IdentificationNumber, accountDetails.AccountNumber, accountDetails.BankNumber, sqlTime)
-	if err != nil {
-		return errors.New("accounts.doCreateAccount: " + err.Error())
-	}
+		_, err = stmtIns.Exec(accountHolderDetails.IdentificationNumber, accountDetails.AccountNumber, accountDetails.BankNumber, sqlTime)
+		if err != nil {
+			return errors.New("accounts.doCreateAccount: " + err.Error())
+		}
+	*/
 	return
 }
 

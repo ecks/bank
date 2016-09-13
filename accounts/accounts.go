@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -214,7 +215,7 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 		}
 	// Merchant account create
 	case 1100:
-		if len(data) < 20 {
+		if len(data) < 19 {
 			err = errors.New("accounts.ProcessAccount: Not all fields present")
 			return
 		}
@@ -522,6 +523,8 @@ func CheckUserAccountValidFromToken(userID string, accountNumber string) (err er
 	if err != nil {
 		return errors.New("accounts.CheckUserAccountValidFromToken: " + err.Error())
 	}
+	fmt.Printf("Account numbers from user: %v\n", userAccountNumbers)
+	fmt.Printf("Account number to check: %v\n", accountNumber)
 
 	senderValid := false
 	for _, v := range userAccountNumbers {
@@ -548,7 +551,7 @@ func merchantAccountCreate(data []string) (result interface{}, err error) {
 		return "", errors.New("accounts.merchantAccountCreate: Could not retrieve account user from token user.")
 	}
 	// Create account
-	merchantObject, accountDetails, err := setMerchantDetails(data, accountHolder.IdentificationNumber)
+	merchantObject, accountDetails, err := setMerchantDetails(data, accountHolder.IdentificationNumber, "create")
 	if err != nil {
 		return "", errors.New("accounts.merchantAccountCreate: " + err.Error())
 	}
@@ -575,7 +578,7 @@ func merchantAccountUpdate(data []string) (result interface{}, err error) {
 	}
 
 	// Set merchant details
-	merchantObject, _, err := setMerchantDetails(data, accountHolder.IdentificationNumber)
+	merchantObject, _, err := setMerchantDetails(data, accountHolder.IdentificationNumber, "update")
 	if err != nil {
 		return "", errors.New("accounts.merchantAccountUpdate: " + err.Error())
 	}
@@ -660,8 +663,8 @@ func merchantAccountSearch(data []string) (result interface{}, err error) {
 	return
 }
 
-func setMerchantDetails(data []string, identificationNumber string) (merchantDetails MerchantDetails, accountDetails AccountDetails, err error) {
-	if len(data) < 20 {
+func setMerchantDetails(data []string, identificationNumber string, setType string) (merchantDetails MerchantDetails, accountDetails AccountDetails, err error) {
+	if len(data) < 19 {
 		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Not all field values present")
 	}
 
@@ -695,29 +698,31 @@ func setMerchantDetails(data []string, identificationNumber string) (merchantDet
 	// @FIXME We leave logo out for now, not sure how to parse pictures
 	merchantDetails.IdentificationNumber = identificationNumber
 
-	if data[18] != "" {
-		merchantDetails.ID = data[18]
-	}
-
 	accountDetails.BankNumber = BANK_NUMBER
 	accountDetails.AccountHolderName = data[3] // Business Name
 	accountDetails.AccountBalance = decimal.NewFromFloat(OPENING_BALANCE)
 	accountDetails.Overdraft = decimal.NewFromFloat(OPENING_OVERDRAFT)
 	accountDetails.AvailableBalance = decimal.NewFromFloat(OPENING_BALANCE + OPENING_OVERDRAFT)
 
-	accountType := data[19]
-	switch accountType {
-	case "":
-		accountType = "merchant" // Default to merchant account
-		break
-	case "merchant", "credit", "mortgage", "loan":
-		// Valid
-		break
-	default:
-		return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Account type not valid for a merchant, must be one of merchant, credit, mortgage, loan")
-		break
+	if setType == "create" {
+		accountType := data[18]
+		switch accountType {
+		case "":
+			accountType = "merchant" // Default to merchant account
+			break
+		case "merchant", "credit", "mortgage", "loan":
+			// Valid
+			break
+		default:
+			return MerchantDetails{}, AccountDetails{}, errors.New("accounts.setMerchantDetails: Account type not valid for a merchant, must be one of merchant, credit, mortgage, loan")
+			break
+		}
+		accountDetails.Type = accountType
+	} else if setType == "update" {
+		if data[18] != "" {
+			merchantDetails.ID = data[18]
+		}
 	}
-	accountDetails.Type = accountType
 
 	return
 }
