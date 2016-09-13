@@ -408,8 +408,11 @@ func doDeleteAccountPushToken(accountNumber string, pushToken string, platform s
 	return
 }
 
-func getAccountFromSearchData(searchString string) (allAccountDetails []AccountHolderDetails, err error) {
-	rows, err := Config.Db.Query("SELECT `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderEmailAddress` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` = ? OR `accountHolderGivenName` = ? OR `accountHolderFamilyName` = ? OR  `accountHolderEmailAddress` = ? LIMIT 10", searchString, searchString, searchString, searchString)
+func getAccountFromSearchData(searchStr string) (allAccountDetails []AccountHolderDetails, err error) {
+	searchString := "%" + searchStr + "%"
+	// We don't want to fuzzy search on some data as this may pose a security issue
+	// e.g. Getting all bank accounts by domain on email address
+	rows, err := Config.Db.Query("SELECT `accountHolderGivenName`, `accountHolderFamilyName`, `accountHolderEmailAddress` FROM `accounts_users` WHERE `accountHolderIdentificationNumber` like ? OR `accountHolderGivenName` like ? OR `accountHolderFamilyName` like ? OR  `accountHolderEmailAddress` = ? LIMIT 10", searchString, searchString, searchString, searchString)
 	if err != nil {
 		return []AccountHolderDetails{}, errors.New("accounts.getAccountMeta: " + err.Error())
 	}
@@ -726,6 +729,29 @@ func getAllMerchantAccountNumbersByMerchantID(merchantID string) (accountIDs []s
 
 	if count == 0 {
 		return nil, errors.New("accounts.getAllMerchantAccountNumbersByMerchantID: Account not found")
+	}
+
+	return
+}
+
+func getMerchantAccountFromSearchData(searchStr string) (allMerchantDetails []MerchantDetails, err error) {
+	searchString := "%" + searchStr + "%"
+	rows, err := Config.Db.Query("SELECT `merchantID`, `merchantName`, `merchantDescription` FROM `merchants` WHERE `merchantID` like ? OR `merchantName` like ? OR `merchantDescription` like ? OR  `merchantWebsite` like ? LIMIT 10", searchString, searchString, searchString, searchString)
+	if err != nil {
+		return []MerchantDetails{}, errors.New("accounts.getMerchantAccountFromSearchData: " + err.Error())
+	}
+	defer rows.Close()
+
+	allMerchantDetails = []MerchantDetails{}
+	count := 0
+	for rows.Next() {
+		merchantDetails := MerchantDetails{}
+		if err := rows.Scan(&merchantDetails.ID, &merchantDetails.Name, &merchantDetails.Description); err != nil {
+			return []MerchantDetails{}, errors.New("accounts.getMerchantAccountFromSearchData: " + err.Error())
+			break
+		}
+		allMerchantDetails = append(allMerchantDetails, merchantDetails)
+		count++
 	}
 
 	return

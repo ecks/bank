@@ -636,10 +636,18 @@ func merchantAccountDelete(data []string) (result interface{}, err error) {
 		return "", errors.New("accounts.merchantAccountUpdate: Could not retrieve current merchant using given merchant ID. " + err.Error())
 	}
 
-	// Make sure the user has access to the merchant account
-	err = CheckUserAccountValidFromToken(accountHolderDetails.IdentificationNumber, merchantObject.ID)
+	// Get list of accounts linked to merchant
+	accountIDs, err := getAllMerchantAccountNumbersByMerchantID(merchantObject.ID)
 	if err != nil {
-		return "", errors.New("accounts.merchantAccountUpdate: Account holder not valid for given Merchant ID. " + err.Error())
+		return "", errors.New("accounts.merchantAccountUpdate: Could not get accountIDs associated to Merchant ID: " + err.Error())
+	}
+
+	// Make sure the user has access to all merchant accounts
+	for _, aID := range accountIDs {
+		err = CheckUserAccountValidFromToken(accountHolderDetails.IdentificationNumber, aID)
+		if err != nil {
+			return "", errors.New("accounts.merchantAccountUpdate: Account holder not valid for given Merchant ID. " + err.Error())
+		}
 	}
 
 	err = deleteMerchantAccount(&merchantObject, &accountDetails, &accountHolderDetails)
@@ -657,7 +665,7 @@ func merchantAccountView(data []string) (merchant MerchantDetails, err error) {
 	}
 	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
 
-	merchant, err = getMerchantFromMerchantID(data[4])
+	merchant, err = getMerchantFromMerchantID(data[3])
 	if err != nil {
 		return MerchantDetails{}, errors.New("accounts.merchantAccountView: Could not retrieve merchant from given Merchant ID.")
 	}
@@ -665,6 +673,17 @@ func merchantAccountView(data []string) (merchant MerchantDetails, err error) {
 }
 
 func merchantAccountSearch(data []string) (result interface{}, err error) {
+	_, err = appauth.GetUserFromToken(data[0])
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountSearch: " + err.Error())
+	}
+
+	searchString := data[3]
+	result, err = getMerchantAccountFromSearchData(searchString)
+	if err != nil {
+		return "", errors.New("accounts.merchantAccountSearch: Searching for account error. " + err.Error())
+	}
+
 	return
 }
 
