@@ -2,7 +2,6 @@ package accounts
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -523,8 +522,6 @@ func CheckUserAccountValidFromToken(userID string, accountNumber string) (err er
 	if err != nil {
 		return errors.New("accounts.CheckUserAccountValidFromToken: " + err.Error())
 	}
-	fmt.Printf("Account numbers from user: %v\n", userAccountNumbers)
-	fmt.Printf("Account number to check: %v\n", accountNumber)
 
 	senderValid := false
 	for _, v := range userAccountNumbers {
@@ -583,10 +580,18 @@ func merchantAccountUpdate(data []string) (result interface{}, err error) {
 		return "", errors.New("accounts.merchantAccountUpdate: " + err.Error())
 	}
 
-	// Make sure the user has access to the merchant account
-	err = CheckUserAccountValidFromToken(accountHolder.IdentificationNumber, merchantObject.ID)
+	// Get list of accounts linked to merchant
+	accountIDs, err := getAllMerchantAccountNumbersByMerchantID(merchantObject.ID)
 	if err != nil {
-		return "", errors.New("accounts.merchantAccountUpdate: Account holder not valid for given Merchant ID. " + err.Error())
+		return "", errors.New("accounts.merchantAccountUpdate: Could not get accountIDs associated to Merchant ID: " + err.Error())
+	}
+
+	// Make sure the user has access to all merchant accounts
+	for _, aID := range accountIDs {
+		err = CheckUserAccountValidFromToken(accountHolder.IdentificationNumber, aID)
+		if err != nil {
+			return "", errors.New("accounts.merchantAccountUpdate: Account holder not valid for given Merchant ID. " + err.Error())
+		}
 	}
 
 	currentMerchantObject, err := getMerchantFromMerchantID(merchantObject.ID)

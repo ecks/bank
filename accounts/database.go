@@ -534,8 +534,7 @@ func doCreateMerchant(sqltime int32, merchantDetails *MerchantDetails) (err erro
 }
 
 func updateMerchant(merchantDetails *MerchantDetails) (err error) {
-	stmt := "UPDATE merchants SET  `merchantName` = ? AND `merchantDescription` = ? AND `merchantContactGivenName` = ? AND `merchantContactFamilyName` = ? AND `merchantAddressLine1` = ? AND `merchantAddressLine2` = ? AND `merchantAddressLine3` = ? AND `merchantCountry` = ? AND `merchantPostalCode` = ? AND  `merchantBusinessSector` = ? AND `merchantWebsite` = ? AND `merchantContactPhone` = ? AND `merchantContactFax` = ? AND `merchantContactEmail` = ? AND `merchantLogo` = ? AND `timestamp` = ? WHERE `merchantID` = ? "
-	stmt += "VALUES(?, ?, ?, ?, ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?,  ?)"
+	stmt := "UPDATE merchants SET  `merchantName` = ?,  `merchantDescription` = ? ,  `merchantContactGivenName` = ? ,  `merchantContactFamilyName` = ? ,  `merchantAddressLine1` = ? ,  `merchantAddressLine2` = ? ,  `merchantAddressLine3` = ? ,  `merchantCountry` = ? ,  `merchantPostalCode` = ? ,   `merchantBusinessSector` = ? ,  `merchantWebsite` = ? ,  `merchantContactPhone` = ? ,  `merchantContactFax` = ? ,  `merchantContactEmail` = ? ,  `merchantLogo` = ? ,  `timestamp` = ? WHERE `merchantID` = ? "
 	stmtRes, err := Config.Db.Prepare(stmt)
 	if err != nil {
 		return errors.New("accounts.updateMerchant: " + err.Error())
@@ -581,6 +580,7 @@ func getMerchantFromMerchantID(merchantID string) (merchantDetails MerchantDetai
 
 	for rows.Next() {
 		if err := rows.Scan(
+			&merchantDetails.ID,
 			&merchantDetails.Name,
 			&merchantDetails.Description,
 			&merchantDetails.ContactGivenName,
@@ -597,7 +597,6 @@ func getMerchantFromMerchantID(merchantID string) (merchantDetails MerchantDetai
 			&merchantDetails.ContactEmail,
 			&merchantDetails.Logo,
 			&merchantDetails.Timestamp,
-			&merchantDetails.ID,
 		); err != nil {
 			return MerchantDetails{}, errors.New("accounts.getMerchantFromMerchantID: " + err.Error())
 			break
@@ -702,6 +701,31 @@ func doDeleteAccountMerchantAccounts(merchantDetails *MerchantDetails, accountHo
 
 	if err != nil {
 		return errors.New("accounts.doDeleteAccountMerchantAccounts: " + err.Error())
+	}
+
+	return
+}
+
+func getAllMerchantAccountNumbersByMerchantID(merchantID string) (accountIDs []string, err error) {
+	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `merchant_users_accounts` WHERE `merchantID` = ?", merchantID)
+	if err != nil {
+		return nil, errors.New("accounts.getAllMerchantAccountNumbersByMerchantID: " + err.Error())
+	}
+	defer rows.Close()
+
+	count := 0
+	// Return an array
+	for rows.Next() {
+		var accountID string
+		if err := rows.Scan(&accountID); err != nil {
+			break
+		}
+		count++
+		accountIDs = append(accountIDs, accountID)
+	}
+
+	if count == 0 {
+		return nil, errors.New("accounts.getAllMerchantAccountNumbersByMerchantID: Account not found")
 	}
 
 	return
