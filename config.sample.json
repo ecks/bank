@@ -1,4 +1,5 @@
 {
+    "LogLevel"          :   "debug|info|warning|error|critical",
     "MySQLUser"         :   "mysql_user",
     "MySQLPass"         :   "mysql_password",
     "MySQLHost"         :   "ip_address",

@@ -50,7 +50,7 @@ func runServer(mode string) (message string, err error) {
 
 		// Close the listener when the application closes.
 		defer l.Close()
-		fmt.Println("Listening on secure " + CONN_HOST + ":" + CONN_PORT)
+		bLog(0, "Listening on secure "+CONN_HOST+":"+CONN_PORT, trace())
 		for {
 			// Listen for an incoming connection.
 			conn, err := l.Accept()
@@ -69,7 +69,7 @@ func runServer(mode string) (message string, err error) {
 
 		// Close the listener when the application closes.
 		defer l.Close()
-		fmt.Println("Listening on unsecure " + CONN_HOST + ":" + CONN_PORT)
+		bLog(0, "Listening on unsecure "+CONN_HOST+":"+CONN_PORT, trace())
 		for {
 			// Listen for an incoming connection.
 			conn, err := l.Accept()

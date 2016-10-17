@@ -6,3 +6,5 @@ bank
 *.key
 *.pem
 *.crt
+
+bvnk.log
