@@ -139,5 +139,5 @@ func trace() (funcTrace string) {
 	runtime.Callers(2, pc)
 	f := runtime.FuncForPC(pc[0])
 	file, line := f.FileLine(pc[0])
-	return fmt.Sprintf("%s:%d %s\n", file, line, f.Name())
+	return fmt.Sprintf("%s:%d %s", file, line, f.Name())
 }

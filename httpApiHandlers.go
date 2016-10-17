@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/bvnk/bank/accounts"
@@ -12,7 +11,6 @@ import (
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "API Index")
 }
 
 func getTokenFromHeader(w http.ResponseWriter, r *http.Request) (token string, err error) {
@@ -41,15 +39,12 @@ func AuthIndex(w http.ResponseWriter, r *http.Request) {
 
 	//Extend token
 	response, err := appauth.ProcessAppAuth([]string{token, "appauth", "1"})
-	fmt.Println(response)
-	fmt.Println(err)
 	Response(response, err, w, r)
 	return
 }
 
 // Get token
 func AuthLogin(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Get token")
 	user := r.FormValue("User")
 	password := r.FormValue("Password")
 
@@ -85,7 +80,6 @@ func AuthRemove(w http.ResponseWriter, r *http.Request) {
 }
 
 func AccountIndex(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Account Index")
 	token, err := getTokenFromHeader(w, r)
 	if err != nil {
 		Response("", err, w, r)
