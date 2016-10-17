@@ -14,7 +14,7 @@ import (
 )
 
 func RunHttpServer() (err error) {
-	fmt.Println("HTTP Server called")
+	bLog(0, "HTTP server called", trace())
 
 	// Load app config
 	Config, err := configuration.LoadConfig()
@@ -33,6 +33,7 @@ func RunHttpServer() (err error) {
 	err = http.ListenAndServeTLS(":"+Config.HttpPort, configuration.ImportPath+"certs/"+Config.FQDN+".pem", configuration.ImportPath+"certs/"+Config.FQDN+".key", router)
 	//err = http.ListenAndServeTLS(":8443", "certs/thebankoftoday.com.crt", "certs/thebankoftoday.com.key", router)
 	fmt.Println(err)
+	bLog(4, err.Error(), trace())
 	return
 }
 
@@ -43,6 +44,7 @@ func Response(responseSuccess interface{}, responseError error, w http.ResponseW
 	// Check for error
 	if responseError != nil {
 		req["error"] = responseError.Error()
+		bLog(3, "Response error: "+responseError.Error(), trace())
 		jsonResponse, err := json.Marshal(req)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -65,4 +67,5 @@ func Response(responseSuccess interface{}, responseError error, w http.ResponseW
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
+	bLog(0, "Response success: "+string(jsonResponse), trace())
 }

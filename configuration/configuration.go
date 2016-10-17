@@ -17,6 +17,7 @@ import (
 )
 
 type Configuration struct {
+	LogLevel      string
 	TimeZone      string
 	MySQLUser     string
 	MySQLPass     string
