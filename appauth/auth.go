@@ -82,7 +82,8 @@ func CreateUserPassword(user string, clearTextPassword string) (result string, e
 
 	// @TODO Split these checks up into separate functions
 	// Check if ID number is valid
-	rows, err := Config.Db.Query("SELECT * FROM `accounts_users_accounts` WHERE `accountHolderIdentificationNumber` = ?", user)
+//	rows, err := Config.Db.Query("SELECT * FROM `accounts_users_accounts` WHERE `accountHolderIdentificationNumber` = ?", user)
+	rows, err := Config.Db.Query("SELECT * FROM `accounts_users_accounts` WHERE `accountNumber` = ?", user)
 	if err != nil {
 		return "", errors.New("appauth.CreateUserPassword: Error with select query. " + err.Error())
 	}
@@ -139,7 +140,8 @@ func CreateUserPassword(user string, clearTextPassword string) (result string, e
 	userHashedPassword := hex.EncodeToString(hashOutput)
 
 	// Generate authUser number
-	authUser = uuid.NewV4().String()
+  u, err := uuid.NewV4()
+  authUser = u.String()
 
 	// Prepare statement for inserting data
 	insertStatement := "INSERT INTO accounts_user_auth (`accountHolderIdentificationNumber`, `authUser`, `password`, `salt`, `timestamp`) "
@@ -257,7 +259,7 @@ func CreateToken(authUser string, password string) (token string, err error) {
 		return "", errors.New("appauth.CreateToken: Authentication credentials invalid")
 	}
 
-	newUuid := uuid.NewV4()
+	newUuid, err := uuid.NewV4()
 	token = newUuid.String()
 
 	// @TODO Remove all tokens for this user

@@ -20,8 +20,13 @@ const (
 )
 
 func main() {
+	//argClientServer := "http"
 	argClientServer := "http"
 	// http server is default mode
+
+  flag.Parse()
+
+  fmt.Println(flag.Arg(0))
 
 	if flag.Arg(0) != "" {
 		argClientServer = flag.Arg(0)

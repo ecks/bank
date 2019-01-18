@@ -84,7 +84,7 @@ func doCreateAccount(sqlTime int32, accountDetails *AccountDetails, accountHolde
 	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
 
 	// Generate account number
-	newUuid := uuid.NewV4()
+	newUuid, err := uuid.NewV4()
 	accountDetails.AccountNumber = newUuid.String()
 
 	_, err = stmtIns.Exec(accountDetails.AccountNumber, accountDetails.BankNumber, accountDetails.AccountHolderName, accountDetails.AccountBalance, accountDetails.Overdraft, accountDetails.AvailableBalance, accountDetails.Type, sqlTime)
@@ -315,7 +315,8 @@ func getUserAccountsDetail(userID string) (accounts []AccountDetails, err error)
 }
 
 func getAllAccountNumbersByID(userID string) (accountIDs []string, err error) {
-	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_users_accounts` WHERE `accountHolderIdentificationNumber` = ?", userID)
+//	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_users_accounts` WHERE `accountHolderIdentificationNumber` = ?", userID)
+	rows, err := Config.Db.Query("SELECT `accountNumber` FROM `accounts_users_accounts` WHERE `accountNumber` = ?", userID)
 	if err != nil {
 		return nil, errors.New("accounts.getAllAccountNumbersByID: " + err.Error())
 	}
@@ -506,7 +507,8 @@ func doCreateMerchant(sqltime int32, merchantDetails *MerchantDetails) (err erro
 	defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
 
 	// Generate account number
-	merchantDetails.ID = uuid.NewV4().String()
+  newUuid, err := uuid.NewV4()
+  merchantDetails.ID = newUuid.String()
 
 	_, err = stmtIns.Exec(
 		merchantDetails.ID,

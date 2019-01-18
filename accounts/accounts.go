@@ -272,14 +272,14 @@ func ProcessAccount(data []string) (result interface{}, err error) {
 
 func openAccount(data []string) (result interface{}, err error) {
 	// Validate string against required info/length
-	if len(data) < 15 {
+	if len(data) < 14 {
 		err = errors.New("accounts.openAccount: Not all fields present")
 		return
 	}
 
 	// Test: acmt~1~Kyle~Redelinghuys~19000101~190001011234098~1112223456~~email@domain.com~Physical Address 1~~~1000
 	// @FIXME: Remove new line from data
-	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
+//	data[len(data)-1] = strings.Replace(data[len(data)-1], "\n", "", -1)
 
 	// Create account
 	accountHolderObject, err := setAccountDetails(data)
@@ -333,7 +333,7 @@ func closeAccount(data []string) (result interface{}, err error) {
 }
 
 func setAccountDetails(data []string) (accountDetails AccountDetails, err error) {
-	if len(data) < 15 {
+	if len(data) < 14 {
 		return AccountDetails{}, errors.New("accounts.setAccountDetails: Not all fields required present")
 	}
 

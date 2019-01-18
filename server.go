@@ -139,7 +139,7 @@ func processCommand(text string) (result interface{}, err error) {
 	isLogIn := (command[0] == "0" && command[1] == "appauth" && command[2] == "2")
 	isCreateUserPassword := (command[0] == "0" && command[1] == "appauth" && command[2] == "3")
 
-	if !isCreateAccount || !isLogIn || !isCreateUserPassword {
+	if !isCreateAccount && !isLogIn && !isCreateUserPassword {
 		err := appauth.CheckToken(command[0])
 		if err != nil {
 			return "", errors.New("server.processCommand: " + err.Error())

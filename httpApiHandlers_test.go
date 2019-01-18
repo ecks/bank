@@ -8,7 +8,7 @@ import (
 	"github.com/bvnk/bank/accounts"
 	"github.com/bvnk/bank/appauth"
 	"github.com/bvnk/bank/configuration"
-	"github.com/bvnk/bank/payments"
+//	"github.com/bvnk/bank/payments"
 	"github.com/bvnk/bank/push"
 )
 
@@ -29,7 +29,7 @@ func loadAllConfig(t *testing.T) {
 
 	// Set config in packages
 	accounts.SetConfig(&Config)
-	payments.SetConfig(&Config)
+//	payments.SetConfig(&Config)
 	appauth.SetConfig(&Config)
 	push.SetConfig(&Config)
 }

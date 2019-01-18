@@ -1,0 +1,32 @@
+Create an account:
+
+0~acmt~1~Kyle~Redelinghuys~19700101~197001011234098~55512340987~~email@domain.com~Physical Address 1~~~1000~cheque
+
+Response (with bank account):
+
+1~"578f571b-67e2-4ea8-9b18-98622b7b8356"
+
+Create a password:
+
+0~appauth~3~578f571b-67e2-4ea8-9b18-98622b7b8356~TestPassword
+
+Response (with account id):
+
+1~"0c1117ef-c8cf-4e14-8b0c-3065b23fffce"
+
+Login to account:
+
+0~appauth~2~0c1117ef-c8cf-4e14-8b0c-3065b23fffce~TestPassword
+
+Response (with token):
+
+1~"d4e46117-eb5e-454e-8598-58f6484e672c"
+
+
+Send a transaction (20 dollars):
+
+d4e46117-eb5e-454e-8598-58f6484e672c~pain~1~578f571b-67e2-4ea8-9b18-98622b7b8356@~137232cc-142e-474c-aaaa-43393f9b7c4c@~20~40.061049~-105.208761~test-transaction
+
+Response:
+
+1~""
